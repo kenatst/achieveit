@@ -3,110 +3,53 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  ScrollView,
   Pressable,
-  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { FileText, ChevronRight, Clock, Trash2, FolderOpen } from "lucide-react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { Plus, ChevronRight, FolderOpen } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { usePlans } from "@/contexts/PlansContext";
-import { Plan } from "@/types/plan";
 
 export default function PlansScreen() {
-  const { plans, isLoading, deletePlan } = usePlans();
+  const { plans } = usePlans();
   const router = useRouter();
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+  const timeAgo = (date: string) => {
+    const d = new Date(date);
+    const now = new Date();
+    const days = Math.floor((now.getTime() - d.getTime()) / 86400000);
+    if (days === 0) return "Today";
+    if (days === 1) return "Yesterday";
+    if (days < 7) return `${days}d ago`;
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
-  const handlePlanPress = (plan: Plan) => {
-    router.push(`/plan/${plan.id}` as any);
-  };
-
-  const handleDeletePlan = (planId: string) => {
-    deletePlan(planId);
-  };
-
-  const renderPlanItem = ({ item }: { item: Plan }) => (
-    <Pressable
-      style={({ pressed }) => [
-        styles.planCard,
-        pressed && styles.planCardPressed,
-      ]}
-      onPress={() => handlePlanPress(item)}
-    >
-      <View style={styles.planIconContainer}>
-        <FileText color={Colors.dark.accent} size={24} />
-      </View>
-      <View style={styles.planContent}>
-        <Text style={styles.planTitle} numberOfLines={2}>
-          {item.content.title}
-        </Text>
-        <Text style={styles.planGoal} numberOfLines={1}>
-          {item.goal}
-        </Text>
-        <View style={styles.planMeta}>
-          <Clock color={Colors.dark.textMuted} size={12} />
-          <Text style={styles.planDate}>{formatDate(item.createdAt)}</Text>
-        </View>
-      </View>
-      <View style={styles.planActions}>
-        <Pressable
-          style={styles.deleteButton}
-          onPress={() => handleDeletePlan(item.id)}
-          hitSlop={10}
-        >
-          <Trash2 color={Colors.dark.textMuted} size={18} />
-        </Pressable>
-        <ChevronRight color={Colors.dark.textMuted} size={20} />
-      </View>
-    </Pressable>
-  );
-
-  const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <View style={styles.emptyIconContainer}>
-        <FolderOpen color={Colors.dark.textMuted} size={48} />
-      </View>
-      <Text style={styles.emptyTitle}>No plans yet</Text>
-      <Text style={styles.emptySubtitle}>
-        Create your first plan by describing a goal you want to achieve
-      </Text>
-      <Pressable
-        style={styles.emptyButton}
-        onPress={() => router.push("/(tabs)")}
-      >
-        <LinearGradient
-          colors={Colors.gradients.primary as [string, string]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.emptyButtonGradient}
-        >
-          <Text style={styles.emptyButtonText}>Create Your First Plan</Text>
-        </LinearGradient>
-      </Pressable>
-    </View>
-  );
-
-  if (isLoading) {
+  if (plans.length === 0) {
     return (
       <View style={styles.container}>
-        <LinearGradient
-          colors={[Colors.dark.background, Colors.dark.surface, Colors.dark.background] as [string, string, string]}
-          locations={[0, 0.5, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-        <SafeAreaView style={styles.loadingContainer} edges={["top"]}>
-          <ActivityIndicator size="large" color={Colors.dark.accent} />
+        <SafeAreaView style={styles.safeArea} edges={["top"]}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Plans</Text>
+          </View>
+
+          <View style={styles.empty}>
+            <View style={styles.emptyIcon}>
+              <FolderOpen color={Colors.light.inkFaint} size={36} strokeWidth={1.5} />
+            </View>
+            <Text style={styles.emptyTitle}>No plans yet</Text>
+            <Text style={styles.emptyBody}>
+              Your roadmaps will appear here once you create one
+            </Text>
+            <Pressable
+              style={styles.emptyBtn}
+              onPress={() => router.push("/(tabs)")}
+            >
+              <Plus color="#FFFFFF" size={18} strokeWidth={2.5} />
+              <Text style={styles.emptyBtnText}>Create your first plan</Text>
+            </Pressable>
+          </View>
         </SafeAreaView>
       </View>
     );
@@ -114,165 +57,214 @@ export default function PlansScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={[Colors.dark.background, Colors.dark.surface, Colors.dark.background]}
-        locations={[0, 0.5, 1]}
-        style={StyleSheet.absoluteFill}
-      />
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>My Plans</Text>
-          <Text style={styles.headerSubtitle}>
-            {plans.length} {plans.length === 1 ? "plan" : "plans"} created
-          </Text>
+          <Text style={styles.title}>Plans</Text>
+          <Text style={styles.count}>{plans.length} total</Text>
         </View>
 
-        <FlatList
-          data={plans}
-          keyExtractor={(item) => item.id}
-          renderItem={renderPlanItem}
-          contentContainerStyle={[
-            styles.listContent,
-            plans.length === 0 && styles.listContentEmpty,
-          ]}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={renderEmptyState}
-        />
+        >
+          {plans.map((plan, i) => {
+            const progress = plan.progress.overallProgress;
+
+            return (
+              <Pressable
+                key={plan.id}
+                style={({ pressed }) => [
+                  styles.card,
+                  pressed && styles.cardPressed,
+                ]}
+                onPress={() => router.push(`/plan/${plan.id}` as any)}
+              >
+                {/* Left accent */}
+                <View style={[styles.cardAccent, { backgroundColor: Colors.light.rust }]} />
+
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle} numberOfLines={2}>
+                    {plan.content.title}
+                  </Text>
+                  <Text style={styles.cardGoal} numberOfLines={1}>
+                    {plan.goal}
+                  </Text>
+
+                  <View style={styles.cardMeta}>
+                    <Text style={styles.cardDate}>{timeAgo(plan.createdAt)}</Text>
+                    <View style={styles.cardProgress}>
+                      <View style={styles.cardProgressTrack}>
+                        <View style={[styles.cardProgressFill, { width: `${progress}%` }]} />
+                      </View>
+                      <Text style={styles.cardProgressText}>{progress}%</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <ChevronRight color={Colors.light.inkFaint} size={20} />
+              </Pressable>
+            );
+          })}
+
+          {/* Add new */}
+          <Pressable
+            style={({ pressed }) => [styles.addCard, pressed && styles.addCardPressed]}
+            onPress={() => router.push("/(tabs)")}
+          >
+            <Plus color={Colors.light.rust} size={20} />
+            <Text style={styles.addText}>Create new plan</Text>
+          </Pressable>
+
+          <View style={{ height: 32 }} />
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.dark.background,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  container: { flex: 1, backgroundColor: Colors.light.background },
+  safeArea: { flex: 1 },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
   },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: "800" as const,
-    color: Colors.dark.text,
-    marginBottom: 4,
+  title: {
+    fontSize: 34,
+    fontWeight: "700",
+    color: Colors.light.ink,
+    letterSpacing: -0.6,
   },
-  headerSubtitle: {
+  count: {
     fontSize: 15,
-    color: Colors.dark.textSecondary,
+    color: Colors.light.inkMuted,
+    marginTop: 4,
   },
-  listContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-  },
-  listContentEmpty: {
-    flex: 1,
-  },
-  planCard: {
+  scrollContent: { paddingHorizontal: 24 },
+  // Card
+  card: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.dark.surface,
+    backgroundColor: Colors.light.surface,
     borderRadius: 16,
-    padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
+    overflow: "hidden",
+    ...Colors.shadows?.md,
   },
-  planCardPressed: {
-    backgroundColor: Colors.dark.surfaceLight,
-    borderColor: Colors.dark.borderLight,
+  cardPressed: { backgroundColor: Colors.light.surfacePressed },
+  cardAccent: {
+    width: 4,
+    alignSelf: "stretch",
   },
-  planIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: Colors.dark.accentMuted,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 14,
-  },
-  planContent: {
+  cardContent: {
     flex: 1,
+    padding: 18,
   },
-  planTitle: {
-    fontSize: 16,
-    fontWeight: "600" as const,
-    color: Colors.dark.text,
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: Colors.light.ink,
+    lineHeight: 23,
     marginBottom: 4,
   },
-  planGoal: {
+  cardGoal: {
     fontSize: 14,
-    color: Colors.dark.textSecondary,
-    marginBottom: 6,
+    color: Colors.light.inkMuted,
+    marginBottom: 14,
   },
-  planMeta: {
+  cardMeta: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    justifyContent: "space-between",
   },
-  planDate: {
-    fontSize: 12,
-    color: Colors.dark.textMuted,
+  cardDate: {
+    fontSize: 13,
+    color: Colors.light.inkFaint,
   },
-  planActions: {
+  cardProgress: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   },
-  deleteButton: {
-    padding: 4,
+  cardProgressTrack: {
+    width: 60,
+    height: 4,
+    backgroundColor: Colors.light.divider,
+    borderRadius: 2,
+    overflow: "hidden",
   },
-  emptyState: {
+  cardProgressFill: {
+    height: "100%",
+    backgroundColor: Colors.light.sage,
+    borderRadius: 2,
+  },
+  cardProgressText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: Colors.light.sage,
+    minWidth: 36,
+    textAlign: "right",
+  },
+  // Add card
+  addCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 18,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: Colors.light.divider,
+    gap: 10,
+  },
+  addCardPressed: { backgroundColor: Colors.light.surfacePressed },
+  addText: {
+    fontSize: 15,
+    color: Colors.light.rust,
+    fontWeight: "500",
+  },
+  // Empty
+  empty: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 32,
+    paddingHorizontal: 40,
   },
-  emptyIconContainer: {
-    width: 96,
-    height: 96,
+  emptyIcon: {
+    width: 80,
+    height: 80,
     borderRadius: 24,
-    backgroundColor: Colors.dark.surface,
+    backgroundColor: Colors.light.backgroundDeep,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 24,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
   },
   emptyTitle: {
     fontSize: 22,
-    fontWeight: "700" as const,
-    color: Colors.dark.text,
+    fontWeight: "600",
+    color: Colors.light.ink,
     marginBottom: 8,
   },
-  emptySubtitle: {
-    fontSize: 15,
-    color: Colors.dark.textSecondary,
-    textAlign: "center",
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  emptyButton: {
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  emptyButtonGradient: {
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-  },
-  emptyButtonText: {
-    color: "#fff",
+  emptyBody: {
     fontSize: 16,
-    fontWeight: "600" as const,
+    color: Colors.light.inkMuted,
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 28,
+  },
+  emptyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.light.rust,
+    height: 52,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+    gap: 10,
+  },
+  emptyBtnText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
 });

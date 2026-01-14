@@ -5,352 +5,226 @@ import {
   TextInput,
   StyleSheet,
   Pressable,
-  ScrollView,
   Animated,
   Keyboard,
+  ScrollView,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { ArrowRight, Target, Sparkles, TrendingUp, Zap } from "lucide-react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { ArrowRight } from "lucide-react-native";
 import Colors from "@/constants/colors";
-
-const exampleGoals = [
-  { icon: "💼", text: "Launch my own business" },
-  { icon: "🏋️", text: "Get in the best shape of my life" },
-  { icon: "🎸", text: "Learn to play guitar" },
-  { icon: "📚", text: "Read 50 books this year" },
-  { icon: "🌍", text: "Learn a new language" },
-  { icon: "💰", text: "Save $10,000" },
-];
+import Typography from "@/constants/typography";
 
 export default function HomeScreen() {
   const [goal, setGoal] = useState("");
+  const [active, setActive] = useState(false);
   const router = useRouter();
-  const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.97,
-      useNativeDriver: true,
-    }).start();
-  };
+  const focusAnim = useRef(new Animated.Value(0)).current;
 
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
+  const handleFocus = () => {
+    setActive(true);
+    Animated.timing(focusAnim, {
       toValue: 1,
-      friction: 3,
-      useNativeDriver: true,
+      duration: 400,
+      useNativeDriver: false,
     }).start();
   };
 
-  const handleContinue = () => {
-    if (goal.trim()) {
-      Keyboard.dismiss();
-      router.push({ pathname: "/questionnaire", params: { goal: goal.trim() } });
+  const handleBlur = () => {
+    if (!goal) {
+      setActive(false);
+      Animated.timing(focusAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
     }
   };
 
-  const handleExamplePress = (exampleGoal: string) => {
-    setGoal(exampleGoal);
+  const bgStyle = {
+    backgroundColor: focusAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [Colors.light.background, Colors.light.surface],
+    }),
   };
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={[Colors.dark.background, Colors.dark.surface, Colors.dark.background]}
-        locations={[0, 0.5, 1]}
-        style={StyleSheet.absoluteFill}
-      />
-      
-      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <Animated.View style={[styles.container, bgStyle]}>
+      <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.keyboardView}
+          style={{ flex: 1 }}
         >
           <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scroll}
             keyboardShouldPersistTaps="handled"
           >
+            {/* The Statement Header */}
             <View style={styles.header}>
-              <View style={styles.logoContainer}>
-                <View style={styles.logoIcon}>
-                  <Target color={Colors.dark.accent} size={28} />
-                </View>
-              </View>
-              <Text style={styles.title}>How to achieve it</Text>
-              <Text style={styles.subtitle}>
-                Transform your goals into actionable plans with AI-powered roadmaps
+              <Text style={styles.label}>Manifesto</Text>
+              <Text style={styles.date}>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</Text>
+            </View>
+
+            {/* The Question as Art */}
+            <View style={styles.promptContainer}>
+              <Text style={styles.promptText}>
+                What is your
+                <Text style={styles.italicText}> great work?</Text>
               </Text>
             </View>
 
-            <View style={styles.featuresRow}>
-              <View style={styles.featureItem}>
-                <Sparkles color={Colors.dark.accent} size={16} />
-                <Text style={styles.featureText}>AI-Powered</Text>
-              </View>
-              <View style={styles.featureDot} />
-              <View style={styles.featureItem}>
-                <TrendingUp color={Colors.dark.accent} size={16} />
-                <Text style={styles.featureText}>Personalized</Text>
-              </View>
-              <View style={styles.featureDot} />
-              <View style={styles.featureItem}>
-                <Zap color={Colors.dark.accent} size={16} />
-                <Text style={styles.featureText}>Actionable</Text>
-              </View>
+            {/* Minimally Invasive Input */}
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder="Write your intention..."
+                placeholderTextColor={Colors.light.inkLight}
+                value={goal}
+                onChangeText={setGoal}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                multiline
+                scrollEnabled={false}
+              />
+              <View style={styles.inputLine} />
             </View>
 
-            <View style={styles.inputSection}>
-              <Text style={styles.inputLabel}>What do you want to achieve?</Text>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Describe your goal..."
-                  placeholderTextColor={Colors.dark.textMuted}
-                  value={goal}
-                  onChangeText={setGoal}
-                  multiline
-                  maxLength={200}
-                  testID="goal-input"
-                />
-                <Text style={styles.charCount}>{goal.length}/200</Text>
-              </View>
-
-              <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            {/* Floating Action Button (Shows only when typing) */}
+            {goal.length > 0 && (
+              <Animated.View style={styles.fabContainer}>
                 <Pressable
-                  style={[
-                    styles.continueButton,
-                    !goal.trim() && styles.continueButtonDisabled,
-                  ]}
-                  onPress={handleContinue}
-                  onPressIn={handlePressIn}
-                  onPressOut={handlePressOut}
-                  disabled={!goal.trim()}
-                  testID="continue-button"
+                  style={styles.fab}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    router.push({ pathname: "/questionnaire", params: { goal: goal.trim() } });
+                  }}
                 >
-                  <LinearGradient
-                    colors={
-                      goal.trim()
-                        ? (Colors.gradients.primary as [string, string])
-                        : ([Colors.dark.border, Colors.dark.border] as [string, string])
-                    }
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.buttonGradient}
-                  >
-                    <Text
-                      style={[
-                        styles.continueButtonText,
-                        !goal.trim() && styles.continueButtonTextDisabled,
-                      ]}
-                    >
-                      Create My Plan
-                    </Text>
-                    <ArrowRight
-                      color={goal.trim() ? "#fff" : Colors.dark.textMuted}
-                      size={20}
-                    />
-                  </LinearGradient>
+                  <Text style={styles.fabText}>Create Blueprint</Text>
+                  <ArrowRight color={Colors.light.background} size={20} />
                 </Pressable>
               </Animated.View>
-            </View>
+            )}
 
-            <View style={styles.examplesSection}>
-              <Text style={styles.examplesTitle}>Need inspiration?</Text>
-              <View style={styles.examplesGrid}>
-                {exampleGoals.map((example, index) => (
-                  <Pressable
-                    key={index}
-                    style={({ pressed }) => [
-                      styles.exampleChip,
-                      pressed && styles.exampleChipPressed,
-                    ]}
-                    onPress={() => handleExamplePress(example.text)}
-                  >
-                    <Text style={styles.exampleIcon}>{example.icon}</Text>
-                    <Text style={styles.exampleText} numberOfLines={1}>
-                      {example.text}
-                    </Text>
-                  </Pressable>
-                ))}
+            {/* Inspiration as footnote, not chips */}
+            {!active && goal.length === 0 && (
+              <View style={styles.inspirationFooter}>
+                <Text style={styles.inspirationLabel}>Observations:</Text>
+                <View style={styles.inspirationList}>
+                  <Text style={styles.inspirationItem}>• Build a media empire</Text>
+                  <Text style={styles.inspirationItem}>• Run the Tokyo Marathon</Text>
+                  <Text style={styles.inspirationItem}>• Learn Classical Piano</Text>
+                </View>
               </View>
-            </View>
+            )}
+
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.dark.background,
   },
   safeArea: {
     flex: 1,
   },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
+  scroll: {
     flexGrow: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: 28,
+    paddingTop: 20,
+    justifyContent: "space-between", // Pushes footer down
     paddingBottom: 40,
   },
   header: {
-    alignItems: "center",
-    marginTop: 32,
-    marginBottom: 24,
-  },
-  logoContainer: {
-    marginBottom: 16,
-  },
-  logoIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: Colors.dark.accentMuted,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: Colors.dark.accent,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "800" as const,
-    color: Colors.dark.text,
-    textAlign: "center",
-    marginBottom: 8,
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: Colors.dark.textSecondary,
-    textAlign: "center",
-    lineHeight: 24,
-    maxWidth: 300,
-  },
-  featuresRow: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 32,
-    flexWrap: "wrap",
-    gap: 8,
+    justifyContent: "space-between",
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.divider,
+    paddingBottom: 16,
+    marginBottom: 60,
   },
-  featureItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+  label: {
+    ...Typography.sans.label,
+    color: Colors.light.ink,
   },
-  featureText: {
+  date: {
+    ...Typography.sans.caption,
     fontSize: 13,
-    color: Colors.dark.textSecondary,
-    fontWeight: "500" as const,
+    color: Colors.light.inkMedium,
   },
-  featureDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.dark.border,
+  promptContainer: {
+    marginBottom: 40,
   },
-  inputSection: {
-    marginBottom: 32,
+  promptText: {
+    ...Typography.display.hero,
+    fontSize: 48,
+    lineHeight: 56,
+    color: Colors.light.ink,
   },
-  inputLabel: {
-    fontSize: 18,
-    fontWeight: "600" as const,
-    color: Colors.dark.text,
-    marginBottom: 12,
+  italicText: {
+    ...Typography.display.italic,
+    color: Colors.light.accent,
   },
   inputWrapper: {
-    backgroundColor: Colors.dark.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    marginBottom: 16,
-  },
-  input: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 32,
-    fontSize: 16,
-    color: Colors.dark.text,
-    minHeight: 100,
-    textAlignVertical: "top",
-  },
-  charCount: {
-    position: "absolute",
-    bottom: 12,
-    right: 16,
-    fontSize: 12,
-    color: Colors.dark.textMuted,
-  },
-  continueButton: {
-    borderRadius: 14,
-    overflow: "hidden",
-  },
-  continueButtonDisabled: {
-    opacity: 0.6,
-  },
-  buttonGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    gap: 8,
-  },
-  continueButtonText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "600" as const,
-  },
-  continueButtonTextDisabled: {
-    color: Colors.dark.textMuted,
-  },
-  examplesSection: {
+    marginBottom: 40,
     flex: 1,
   },
-  examplesTitle: {
-    fontSize: 14,
-    color: Colors.dark.textMuted,
-    marginBottom: 12,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    fontWeight: "500" as const,
+  input: {
+    ...Typography.display.h2,
+    color: Colors.light.ink,
+    minHeight: 60,
+    paddingBottom: 16,
+    textAlignVertical: "top",
   },
-  examplesGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+  inputLine: {
+    height: 1,
+    backgroundColor: Colors.light.ink,
+    opacity: 0.2,
   },
-  exampleChip: {
+  fabContainer: {
+    alignItems: "flex-end",
+    marginTop: 20,
+  },
+  fab: {
+    backgroundColor: Colors.light.ink,
+    paddingVertical: 16,
+    paddingHorizontal: 28,
+    borderRadius: 4,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.dark.surface,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
+    gap: 12,
+    shadowColor: Colors.light.accent,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+  },
+  fabText: {
+    ...Typography.sans.label,
+    color: Colors.light.background,
+  },
+  inspirationFooter: {
+    marginBottom: 20,
+  },
+  inspirationLabel: {
+    ...Typography.sans.caption,
+    marginBottom: 12,
+    color: Colors.light.inkLight,
+    textTransform: "uppercase",
+  },
+  inspirationList: {
     gap: 8,
   },
-  exampleChipPressed: {
-    backgroundColor: Colors.dark.surfaceLight,
-    borderColor: Colors.dark.accent,
-  },
-  exampleIcon: {
+  inspirationItem: {
+    ...Typography.sans.body,
     fontSize: 16,
-  },
-  exampleText: {
-    fontSize: 14,
-    color: Colors.dark.textSecondary,
-    fontWeight: "500" as const,
+    color: Colors.light.inkMedium,
+    fontStyle: "italic", // Hand-written note feel
+    fontFamily: Platform.select({ ios: "Georgia-Italic", android: "serif" }),
   },
 });

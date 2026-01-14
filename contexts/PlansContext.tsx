@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import createContextHook from "@nkzw/create-context-hook";
 import { useState, useEffect } from "react";
-import { Plan, QuestionnaireAnswer } from "@/types/plan";
+import { Plan, QuestionnaireAnswer, PlanProgress, ActivityLogEntry } from "@/types/plan";
 import { generateObject } from "@rork-ai/toolkit-sdk";
 import { z } from "zod";
 
@@ -57,6 +57,72 @@ const planContentSchema = z.object({
   motivationalQuote: z.string(),
 });
 
+// Initialize empty progress object
+const createEmptyProgress = (): PlanProgress => ({
+  phases: {},
+  phaseActions: {},
+  weeklyTasks: {},
+  weeklyMilestones: {},
+  routineHistory: {},
+  checkpoints: {
+    day30: {},
+    day60: {},
+    day90: {},
+  },
+  successMetrics: {},
+  activityLog: [],
+  overallProgress: 0,
+  startedAt: new Date().toISOString(),
+  lastActivityAt: new Date().toISOString(),
+});
+
+// Calculate overall progress
+const calculateProgress = (plan: Plan): number => {
+  let totalItems = 0;
+  let completedItems = 0;
+
+  // Count phase actions
+  plan.content.phases.forEach((phase, phaseIndex) => {
+    phase.keyActions.forEach((_, actionIndex) => {
+      totalItems++;
+      if (plan.progress.phaseActions[phaseIndex]?.[actionIndex]) {
+        completedItems++;
+      }
+    });
+  });
+
+  // Count weekly tasks
+  plan.content.weeklyPlans.forEach((week, weekIndex) => {
+    week.tasks.forEach((_, taskIndex) => {
+      totalItems++;
+      if (plan.progress.weeklyTasks[weekIndex]?.[taskIndex]) {
+        completedItems++;
+      }
+    });
+  });
+
+  // Count checkpoints
+  ["day30", "day60", "day90"].forEach((day) => {
+    const items = plan.content.checkpoints[day as keyof typeof plan.content.checkpoints];
+    items.forEach((_, index) => {
+      totalItems++;
+      if (plan.progress.checkpoints[day as keyof typeof plan.progress.checkpoints][index]) {
+        completedItems++;
+      }
+    });
+  });
+
+  // Count success metrics
+  plan.content.successMetrics.forEach((_, index) => {
+    totalItems++;
+    if (plan.progress.successMetrics[index]) {
+      completedItems++;
+    }
+  });
+
+  return totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+};
+
 export const [PlansProvider, usePlans] = createContextHook(() => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const queryClient = useQueryClient();
@@ -65,7 +131,14 @@ export const [PlansProvider, usePlans] = createContextHook(() => {
     queryKey: ["plans"],
     queryFn: async () => {
       const stored = await AsyncStorage.getItem(PLANS_STORAGE_KEY);
-      return stored ? (JSON.parse(stored) as Plan[]) : [];
+      if (!stored) return [];
+
+      const parsedPlans = JSON.parse(stored) as Plan[];
+      // Migrate old plans without progress
+      return parsedPlans.map(plan => ({
+        ...plan,
+        progress: plan.progress || createEmptyProgress(),
+      }));
     },
   });
 
@@ -146,6 +219,7 @@ Make the content:
         content,
         createdAt: new Date().toISOString(),
         isPremium: true,
+        progress: createEmptyProgress(),
       };
 
       const updatedPlans = [newPlan, ...plans];
@@ -156,11 +230,188 @@ Make the content:
     },
   });
 
+  const updatePlanProgress = (
+    planId: string,
+    updateFn: (progress: PlanProgress) => PlanProgress,
+    activityEntry?: Omit<ActivityLogEntry, "id" | "timestamp">
+  ) => {
+    const updatedPlans = plans.map((plan) => {
+      if (plan.id !== planId) return plan;
+
+      let newProgress = updateFn(plan.progress);
+
+      // Add activity log entry if provided
+      if (activityEntry) {
+        const logEntry: ActivityLogEntry = {
+          id: Date.now().toString(),
+          timestamp: new Date().toISOString(),
+          ...activityEntry,
+        };
+        newProgress = {
+          ...newProgress,
+          activityLog: [logEntry, ...newProgress.activityLog].slice(0, 100), // Keep last 100
+          lastActivityAt: logEntry.timestamp,
+        };
+      }
+
+      const updatedPlan = { ...plan, progress: newProgress };
+      // Recalculate overall progress
+      updatedPlan.progress.overallProgress = calculateProgress(updatedPlan);
+
+      return updatedPlan;
+    });
+
+    setPlans(updatedPlans);
+    savePlansMutation.mutate(updatedPlans);
+  };
+
+  const togglePhaseAction = (planId: string, phaseIndex: number, actionIndex: number, actionText: string) => {
+    updatePlanProgress(
+      planId,
+      (progress) => {
+        const current = progress.phaseActions[phaseIndex]?.[actionIndex] || false;
+        return {
+          ...progress,
+          phaseActions: {
+            ...progress.phaseActions,
+            [phaseIndex]: {
+              ...progress.phaseActions[phaseIndex],
+              [actionIndex]: !current,
+            },
+          },
+        };
+      },
+      {
+        type: "task_completed",
+        description: actionText,
+        category: "phase",
+      }
+    );
+  };
+
+  const toggleWeeklyTask = (planId: string, weekIndex: number, taskIndex: number, taskText: string) => {
+    updatePlanProgress(
+      planId,
+      (progress) => {
+        const current = progress.weeklyTasks[weekIndex]?.[taskIndex] || false;
+        return {
+          ...progress,
+          weeklyTasks: {
+            ...progress.weeklyTasks,
+            [weekIndex]: {
+              ...progress.weeklyTasks[weekIndex],
+              [taskIndex]: !current,
+            },
+          },
+        };
+      },
+      {
+        type: "task_completed",
+        description: taskText,
+        category: "weekly",
+      }
+    );
+  };
+
+  const toggleWeeklyMilestone = (planId: string, weekIndex: number, milestoneText: string) => {
+    updatePlanProgress(
+      planId,
+      (progress) => {
+        const current = progress.weeklyMilestones[weekIndex] || false;
+        return {
+          ...progress,
+          weeklyMilestones: {
+            ...progress.weeklyMilestones,
+            [weekIndex]: !current,
+          },
+        };
+      },
+      {
+        type: "milestone_reached",
+        description: milestoneText,
+        category: "weekly",
+      }
+    );
+  };
+
+  const toggleCheckpoint = (planId: string, day: "day30" | "day60" | "day90", itemIndex: number, itemText: string) => {
+    updatePlanProgress(
+      planId,
+      (progress) => {
+        const current = progress.checkpoints[day][itemIndex] || false;
+        return {
+          ...progress,
+          checkpoints: {
+            ...progress.checkpoints,
+            [day]: {
+              ...progress.checkpoints[day],
+              [itemIndex]: !current,
+            },
+          },
+        };
+      },
+      {
+        type: "checkpoint_reached",
+        description: itemText,
+        category: "checkpoint",
+      }
+    );
+  };
+
+  const toggleSuccessMetric = (planId: string, metricIndex: number, metricText: string) => {
+    updatePlanProgress(
+      planId,
+      (progress) => {
+        const current = progress.successMetrics[metricIndex] || false;
+        return {
+          ...progress,
+          successMetrics: {
+            ...progress.successMetrics,
+            [metricIndex]: !current,
+          },
+        };
+      },
+      {
+        type: "milestone_reached",
+        description: metricText,
+        category: "metric",
+      }
+    );
+  };
+
+  const logRoutine = (planId: string, routineIndex: number, routineName: string) => {
+    const today = new Date().toISOString().split("T")[0];
+    updatePlanProgress(
+      planId,
+      (progress) => {
+        const history = progress.routineHistory[routineIndex] || [];
+        const alreadyLogged = history.includes(today);
+
+        return {
+          ...progress,
+          routineHistory: {
+            ...progress.routineHistory,
+            [routineIndex]: alreadyLogged
+              ? history.filter((d) => d !== today)
+              : [...history, today],
+          },
+        };
+      },
+      {
+        type: "routine_done",
+        description: routineName,
+        category: "routine",
+      }
+    );
+  };
+
   const deletePlan = (planId: string) => {
     const updatedPlans = plans.filter((p) => p.id !== planId);
     setPlans(updatedPlans);
     savePlansMutation.mutate(updatedPlans);
   };
+
+  const getPlanById = (planId: string) => plans.find((p) => p.id === planId);
 
   return {
     plans,
@@ -169,5 +420,13 @@ Make the content:
     isGenerating: generatePlanMutation.isPending,
     generationError: generatePlanMutation.error,
     deletePlan,
+    getPlanById,
+    // Progress tracking
+    togglePhaseAction,
+    toggleWeeklyTask,
+    toggleWeeklyMilestone,
+    toggleCheckpoint,
+    toggleSuccessMetric,
+    logRoutine,
   };
 });

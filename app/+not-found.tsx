@@ -9,7 +9,7 @@ export default function NotFoundScreen() {
       <Stack.Screen options={{ title: "Oops!", headerShown: false }} />
       <View style={styles.container}>
         <View style={styles.iconContainer}>
-          <AlertCircle color={Colors.dark.textMuted} size={48} />
+          <AlertCircle color={Colors.light.textMuted} size={48} />
         </View>
         <Text style={styles.title}>Page Not Found</Text>
         <Text style={styles.subtitle}>
@@ -29,13 +29,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
-    backgroundColor: Colors.dark.background,
+    backgroundColor: Colors.light.background,
   },
   iconContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: Colors.dark.surface,
+    backgroundColor: Colors.light.surface,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 24,
@@ -43,19 +43,19 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "700" as const,
-    color: Colors.dark.text,
+    color: Colors.light.text,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: Colors.dark.textSecondary,
+    color: Colors.light.textSecondary,
     textAlign: "center",
     marginBottom: 24,
   },
   link: {
     paddingVertical: 12,
     paddingHorizontal: 24,
-    backgroundColor: Colors.dark.accent,
+    backgroundColor: Colors.light.accent,
     borderRadius: 12,
   },
   linkText: {

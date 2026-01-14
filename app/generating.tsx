@@ -1,116 +1,73 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Animated,
-  Easing,
-} from "react-native";
+import { View, Text, StyleSheet, Animated, Easing } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { Sparkles, FileText, CheckCircle, AlertCircle } from "lucide-react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { Check, AlertCircle } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { usePlans } from "@/contexts/PlansContext";
 import { QuestionnaireAnswer } from "@/types/plan";
 
-const loadingSteps = [
-  { text: "Analyzing your goal...", icon: Sparkles },
-  { text: "Creating personalized roadmap...", icon: FileText },
-  { text: "Building weekly plans...", icon: FileText },
-  { text: "Generating routines & checklists...", icon: CheckCircle },
-  { text: "Finalizing your premium plan...", icon: Sparkles },
+const stages = [
+  "Understanding your goal",
+  "Mapping the journey",
+  "Building weekly plans",
+  "Setting up routines",
+  "Finishing touches",
 ];
 
 export default function GeneratingScreen() {
-  const { goal, answers } = useLocalSearchParams<{
-    goal: string;
-    answers: string;
-  }>();
+  const { goal, answers } = useLocalSearchParams<{ goal: string; answers: string }>();
   const router = useRouter();
   const { generatePlan, generationError } = usePlans();
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [stage, setStage] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [generatedPlanId, setGeneratedPlanId] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
 
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const spinAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.loop(
-      Animated.timing(rotateAnim, {
+      Animated.timing(spinAnim, {
         toValue: 1,
-        duration: 2000,
+        duration: 1500,
         easing: Easing.linear,
         useNativeDriver: true,
       })
     ).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, [rotateAnim, pulseAnim]);
+  }, []);
 
   useEffect(() => {
-    const stepInterval = setInterval(() => {
-      setCurrentStepIndex((prev) => {
-        if (prev < loadingSteps.length - 1) {
-          return prev + 1;
-        }
-        return prev;
-      });
-    }, 3000);
-
-    return () => clearInterval(stepInterval);
+    const timer = setInterval(() => {
+      setStage(prev => (prev < stages.length - 1 ? prev + 1 : prev));
+    }, 1800);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
     Animated.timing(progressAnim, {
-      toValue: (currentStepIndex + 1) / loadingSteps.length,
-      duration: 500,
-      easing: Easing.out(Easing.ease),
+      toValue: (stage + 1) / stages.length,
+      duration: 300,
+      easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
-  }, [currentStepIndex, progressAnim]);
+  }, [stage]);
 
   useEffect(() => {
-    const generate = async () => {
+    const run = async () => {
       try {
-        const parsedAnswers: QuestionnaireAnswer = JSON.parse(answers || "{}");
-        console.log("Starting plan generation for goal:", goal);
-        const plan = await generatePlan({
-          goal: goal || "",
-          answers: parsedAnswers,
-        });
-        console.log("Plan generated successfully:", plan.id);
-        setGeneratedPlanId(plan.id);
-        setTimeout(() => {
-          router.replace(`/plan/${plan.id}` as any);
-        }, 1000);
-      } catch (err) {
-        console.error("Error generating plan:", err);
-        setError(err instanceof Error ? err.message : "Failed to generate plan");
+        const parsed: QuestionnaireAnswer = JSON.parse(answers || "{}");
+        const plan = await generatePlan({ goal: goal || "", answers: parsed });
+        setDone(true);
+        setTimeout(() => router.replace(`/plan/${plan.id}` as any), 1200);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Something went wrong");
       }
     };
-
-    generate();
+    run();
   }, [goal, answers, generatePlan, router]);
 
-  const rotation = rotateAnim.interpolate({
+  const rotate = spinAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ["0deg", "360deg"],
   });
@@ -120,56 +77,32 @@ export default function GeneratingScreen() {
     outputRange: ["0%", "100%"],
   });
 
-  const CurrentStepIcon = loadingSteps[currentStepIndex].icon;
-
   if (error || generationError) {
     return (
       <View style={styles.container}>
-        <LinearGradient
-          colors={[Colors.dark.background, Colors.dark.surface, Colors.dark.background] as const}
-          locations={[0, 0.5, 1]}
-          style={StyleSheet.absoluteFill}
-        />
         <SafeAreaView style={styles.safeArea}>
-          <View style={styles.content}>
-            <View style={styles.errorIconContainer}>
-              <AlertCircle color={Colors.dark.error} size={48} />
+          <View style={styles.center}>
+            <View style={styles.errorIcon}>
+              <AlertCircle color={Colors.light.negative} size={36} />
             </View>
-            <Text style={styles.errorTitle}>Generation Failed</Text>
-            <Text style={styles.errorMessage}>
-              {error || generationError?.message || "Something went wrong"}
-            </Text>
-            <View style={styles.errorActions}>
-              <Text
-                style={styles.errorButton}
-                onPress={() => router.back()}
-              >
-                Go Back
-              </Text>
-            </View>
+            <Text style={styles.errorTitle}>Something went wrong</Text>
+            <Text style={styles.errorBody}>{error || generationError?.message}</Text>
+            <Text style={styles.errorLink} onPress={() => router.back()}>Go back</Text>
           </View>
         </SafeAreaView>
       </View>
     );
   }
 
-  if (generatedPlanId) {
+  if (done) {
     return (
       <View style={styles.container}>
-        <LinearGradient
-          colors={[Colors.dark.background, Colors.dark.surface, Colors.dark.background] as const}
-          locations={[0, 0.5, 1]}
-          style={StyleSheet.absoluteFill}
-        />
         <SafeAreaView style={styles.safeArea}>
-          <View style={styles.content}>
-            <View style={styles.successIconContainer}>
-              <CheckCircle color={Colors.dark.accent} size={48} />
+          <View style={styles.center}>
+            <View style={styles.successIcon}>
+              <Check color="#FFFFFF" size={32} strokeWidth={3} />
             </View>
-            <Text style={styles.successTitle}>Plan Created!</Text>
-            <Text style={styles.successMessage}>
-              Your personalized roadmap is ready
-            </Text>
+            <Text style={styles.successTitle}>Your roadmap is ready</Text>
           </View>
         </SafeAreaView>
       </View>
@@ -178,68 +111,43 @@ export default function GeneratingScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={[Colors.dark.background, Colors.dark.surface, Colors.dark.background] as const}
-        locations={[0, 0.5, 1]}
-        style={StyleSheet.absoluteFill}
-      />
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.content}>
-          <Animated.View
-            style={[
-              styles.iconContainer,
-              { transform: [{ scale: pulseAnim }] },
-            ]}
-          >
-            <Animated.View style={{ transform: [{ rotate: rotation }] }}>
-              <View style={styles.iconRing} />
-            </Animated.View>
-            <View style={styles.iconInner}>
-              <CurrentStepIcon color={Colors.dark.accent} size={32} />
-            </View>
+        <View style={styles.center}>
+          {/* Spinner */}
+          <Animated.View style={[styles.spinner, { transform: [{ rotate }] }]}>
+            <View style={styles.spinnerArc} />
           </Animated.View>
 
-          <Text style={styles.title}>Creating Your Plan</Text>
-          <Text style={styles.goalText} numberOfLines={2}>
-            {`"${goal}"`}
-          </Text>
+          {/* Title */}
+          <Text style={styles.title}>Building your roadmap</Text>
+          <Text style={styles.goalQuote}>"{goal}"</Text>
 
-          <View style={styles.progressContainer}>
+          {/* Progress */}
+          <View style={styles.progressSection}>
             <View style={styles.progressTrack}>
-              <Animated.View
-                style={[styles.progressFill, { width: progressWidth }]}
-              />
+              <Animated.View style={[styles.progressFill, { width: progressWidth }]} />
             </View>
-          </View>
 
-          <View style={styles.stepsContainer}>
-            {loadingSteps.map((step, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.stepItem,
-                  index === currentStepIndex && styles.stepItemActive,
-                  index < currentStepIndex && styles.stepItemCompleted,
-                ]}
-              >
-                <View
-                  style={[
-                    styles.stepDot,
-                    index === currentStepIndex && styles.stepDotActive,
-                    index < currentStepIndex && styles.stepDotCompleted,
-                  ]}
-                />
-                <Text
-                  style={[
-                    styles.stepText,
-                    index === currentStepIndex && styles.stepTextActive,
-                    index < currentStepIndex && styles.stepTextCompleted,
-                  ]}
-                >
-                  {step.text}
-                </Text>
-              </View>
-            ))}
+            <View style={styles.stages}>
+              {stages.map((s, i) => (
+                <View key={i} style={[styles.stageRow, i === stage && styles.stageRowActive]}>
+                  <View style={[
+                    styles.stageDot,
+                    i < stage && styles.stageDotDone,
+                    i === stage && styles.stageDotActive,
+                  ]}>
+                    {i < stage && <Check color="#FFFFFF" size={10} strokeWidth={3} />}
+                  </View>
+                  <Text style={[
+                    styles.stageText,
+                    i === stage && styles.stageTextActive,
+                    i < stage && styles.stageTextDone,
+                  ]}>
+                    {s}
+                  </Text>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
       </SafeAreaView>
@@ -248,163 +156,116 @@ export default function GeneratingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.dark.background,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 32,
-  },
-  iconContainer: {
-    width: 100,
-    height: 100,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 32,
-  },
-  iconRing: {
-    position: "absolute",
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  container: { flex: 1, backgroundColor: Colors.light.background },
+  safeArea: { flex: 1 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
+  // Spinner
+  spinner: { width: 56, height: 56, marginBottom: 32 },
+  spinnerArc: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     borderWidth: 3,
-    borderColor: "transparent",
-    borderTopColor: Colors.dark.accent,
-    borderRightColor: Colors.dark.accentLight,
+    borderColor: Colors.light.divider,
+    borderTopColor: Colors.light.rust,
   },
-  iconInner: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: Colors.dark.accentMuted,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  // Content
   title: {
-    fontSize: 28,
-    fontWeight: "700" as const,
-    color: Colors.dark.text,
+    fontSize: 26,
+    fontWeight: "700",
+    color: Colors.light.ink,
+    textAlign: "center",
+    letterSpacing: -0.4,
     marginBottom: 12,
-    textAlign: "center",
   },
-  goalText: {
+  goalQuote: {
     fontSize: 16,
-    color: Colors.dark.textSecondary,
+    color: Colors.light.inkMuted,
     textAlign: "center",
+    fontStyle: "italic",
     marginBottom: 40,
     lineHeight: 24,
-    fontStyle: "italic",
   },
-  progressContainer: {
-    width: "100%",
-    marginBottom: 40,
-  },
+  // Progress
+  progressSection: { width: "100%" },
   progressTrack: {
-    height: 6,
-    backgroundColor: Colors.dark.border,
-    borderRadius: 3,
+    height: 4,
+    backgroundColor: Colors.light.divider,
+    borderRadius: 2,
+    marginBottom: 24,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: Colors.dark.accent,
-    borderRadius: 3,
+    backgroundColor: Colors.light.rust,
+    borderRadius: 2,
   },
-  stepsContainer: {
-    width: "100%",
-    gap: 16,
-  },
-  stepItem: {
+  stages: { gap: 14 },
+  stageRow: {
     flexDirection: "row",
     alignItems: "center",
     opacity: 0.4,
   },
-  stepItemActive: {
-    opacity: 1,
-  },
-  stepItemCompleted: {
-    opacity: 0.6,
-  },
-  stepDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.dark.border,
-    marginRight: 12,
-  },
-  stepDotActive: {
-    backgroundColor: Colors.dark.accent,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  stepDotCompleted: {
-    backgroundColor: Colors.dark.accentDark,
-  },
-  stepText: {
-    fontSize: 15,
-    color: Colors.dark.textMuted,
-  },
-  stepTextActive: {
-    color: Colors.dark.text,
-    fontWeight: "500" as const,
-  },
-  stepTextCompleted: {
-    color: Colors.dark.textSecondary,
-  },
-  successIconContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: Colors.dark.accentMuted,
+  stageRowActive: { opacity: 1 },
+  stageDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: Colors.light.divider,
+    marginRight: 14,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 24,
+  },
+  stageDotActive: { backgroundColor: Colors.light.rust },
+  stageDotDone: { backgroundColor: Colors.light.sage },
+  stageText: {
+    fontSize: 15,
+    color: Colors.light.inkMuted,
+    fontWeight: "400",
+  },
+  stageTextActive: { color: Colors.light.ink, fontWeight: "500" },
+  stageTextDone: { textDecorationLine: "line-through", color: Colors.light.inkFaint },
+  // Success
+  successIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.light.sage,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
   },
   successTitle: {
-    fontSize: 28,
-    fontWeight: "700" as const,
-    color: Colors.dark.text,
-    marginBottom: 8,
+    fontSize: 22,
+    fontWeight: "600",
+    color: Colors.light.ink,
   },
-  successMessage: {
-    fontSize: 16,
-    color: Colors.dark.textSecondary,
-  },
-  errorIconContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: "rgba(239, 68, 68, 0.15)",
+  // Error
+  errorIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.light.rustSoft,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 24,
+    marginBottom: 20,
   },
   errorTitle: {
-    fontSize: 24,
-    fontWeight: "700" as const,
-    color: Colors.dark.text,
+    fontSize: 22,
+    fontWeight: "600",
+    color: Colors.light.ink,
     marginBottom: 8,
   },
-  errorMessage: {
+  errorBody: {
     fontSize: 15,
-    color: Colors.dark.textSecondary,
+    color: Colors.light.inkMuted,
     textAlign: "center",
-    marginBottom: 24,
     lineHeight: 22,
+    marginBottom: 20,
   },
-  errorActions: {
-    flexDirection: "row",
-  },
-  errorButton: {
+  errorLink: {
     fontSize: 16,
-    color: Colors.dark.accent,
-    fontWeight: "600" as const,
+    color: Colors.light.rust,
+    fontWeight: "500",
   },
 });
