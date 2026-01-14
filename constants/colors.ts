@@ -1,0 +1,27 @@
+export default {
+  dark: {
+    background: "#0A0F0D",
+    surface: "#131A16",
+    surfaceLight: "#1A2420",
+    card: "#1E2A25",
+    border: "#2A3832",
+    borderLight: "#3D4F47",
+    text: "#FFFFFF",
+    textSecondary: "#9CA8A3",
+    textMuted: "#6B7A74",
+    accent: "#10B981",
+    accentLight: "#34D399",
+    accentDark: "#059669",
+    accentMuted: "rgba(16, 185, 129, 0.15)",
+    gold: "#F59E0B",
+    goldLight: "#FBBF24",
+    error: "#EF4444",
+    success: "#10B981",
+    warning: "#F59E0B",
+  },
+  gradients: {
+    primary: ["#10B981", "#059669"],
+    gold: ["#F59E0B", "#D97706"],
+    dark: ["#131A16", "#0A0F0D"],
+  },
+};
