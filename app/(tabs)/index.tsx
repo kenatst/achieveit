@@ -16,6 +16,8 @@ import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import Typography from "@/constants/typography";
+import HelpTip from "@/components/HelpTip";
+import { TIPS } from "@/constants/tips";
 
 export default function HomeScreen() {
   const [goal, setGoal] = useState("");
@@ -54,6 +56,11 @@ export default function HomeScreen() {
   return (
     <Animated.View style={[styles.container, bgStyle]}>
       <SafeAreaView style={styles.safeArea}>
+        <HelpTip
+          id={TIPS.createScreen.id}
+          message={TIPS.createScreen.message}
+          position="top"
+        />
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={{ flex: 1 }}

@@ -1,27 +1,31 @@
 import React from "react";
 import { Tabs } from "expo-router";
 import {
-  Sparkles,
+  PenLine,
   FolderOpen,
   BarChart2,
+  Settings,
+  Crosshair,
 } from "lucide-react-native";
-import Colors from "@/constants/colors";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export default function TabLayout() {
+  const { colors } = useTheme();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Colors.light.surface,
+          backgroundColor: colors.surface,
           borderTopWidth: 0.5,
-          borderTopColor: Colors.light.divider,
+          borderTopColor: colors.divider,
           height: 88,
           paddingTop: 8,
           paddingBottom: 28,
         },
-        tabBarActiveTintColor: Colors.light.rust,
-        tabBarInactiveTintColor: Colors.light.inkMuted,
+        tabBarActiveTintColor: colors.rust,
+        tabBarInactiveTintColor: colors.inkMuted,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "500",
@@ -34,7 +38,16 @@ export default function TabLayout() {
         options={{
           title: "Create",
           tabBarIcon: ({ color, size }) => (
-            <Sparkles color={color} size={22} strokeWidth={1.8} />
+            <PenLine color={color} size={22} strokeWidth={1.8} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="focus"
+        options={{
+          title: "Focus",
+          tabBarIcon: ({ color, size }) => (
+            <Crosshair color={color} size={22} strokeWidth={1.8} />
           ),
         }}
       />
@@ -53,6 +66,15 @@ export default function TabLayout() {
           title: "Progress",
           tabBarIcon: ({ color, size }) => (
             <BarChart2 color={color} size={22} strokeWidth={1.8} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Settings",
+          tabBarIcon: ({ color, size }) => (
+            <Settings color={color} size={22} strokeWidth={1.8} />
           ),
         }}
       />

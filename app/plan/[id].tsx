@@ -15,9 +15,14 @@ import {
   BarChart3,
   Flame,
   Check,
+  CalendarPlus,
+  FileDown,
+  MessageCircle,
 } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { usePlans } from "@/contexts/PlansContext";
+import { exportPlanToCalendar } from "@/utils/calendarExport";
+import { exportPlanToPDF } from "@/utils/pdfExport";
 
 type SectionKey = "diagnosis" | "phases" | "weekly" | "routines" | "obstacles" | "checkpoints" | "metrics";
 
@@ -126,6 +131,27 @@ export default function PlanDetailScreen() {
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: `${plan.progress.overallProgress}%` }]} />
             </View>
+            <Pressable
+              style={styles.exportBtn}
+              onPress={() => exportPlanToCalendar(plan)}
+            >
+              <CalendarPlus color={Colors.light.rust} size={18} strokeWidth={1.8} />
+              <Text style={styles.exportBtnText}>Export to Calendar</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.exportBtn, { backgroundColor: Colors.light.sageSoft }]}
+              onPress={() => exportPlanToPDF(plan)}
+            >
+              <FileDown color={Colors.light.sage} size={18} strokeWidth={1.8} />
+              <Text style={[styles.exportBtnText, { color: Colors.light.sage }]}>Download PDF</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.exportBtn, { backgroundColor: Colors.light.rust }]}
+              onPress={() => router.push({ pathname: "/coach" as any, params: { planId: plan.id } })}
+            >
+              <MessageCircle color="#FFF" size={18} strokeWidth={1.8} />
+              <Text style={[styles.exportBtnText, { color: "#FFF" }]}>Ask AI Coach</Text>
+            </Pressable>
           </View>
 
           {/* Quote */}
@@ -397,6 +423,22 @@ const styles = StyleSheet.create({
     height: "100%",
     backgroundColor: Colors.light.rust,
     borderRadius: 3,
+  },
+  exportBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: Colors.light.rustSoft,
+    borderRadius: 8,
+  },
+  exportBtnText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: Colors.light.rust,
   },
   // Quote
   quote: {
