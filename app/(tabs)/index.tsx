@@ -10,6 +10,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -78,7 +79,11 @@ export default function HomeScreen() {
               transition={{ type: 'timing', duration: 700 }}
               style={[styles.header, { borderBottomColor: colors.divider }]}
             >
-              <Text style={[styles.label, { color: colors.ink }]}>Manifesto</Text>
+              <Image
+                source={require("@/assets/images/logo.png")}
+                style={styles.logo}
+                resizeMode="contain"
+              />
               <Text style={[styles.date, { color: colors.inkMedium }]}>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</Text>
             </MotiView>
 
@@ -247,5 +252,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontStyle: "italic", // Hand-written note feel
     fontFamily: Platform.select({ ios: "Georgia-Italic", android: "serif" }),
+  },
+  logo: {
+    width: 60,
+    height: 30,
   },
 });

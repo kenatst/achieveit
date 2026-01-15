@@ -6,6 +6,7 @@ import {
     Pressable,
     Dimensions,
     StatusBar,
+    Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -74,6 +75,11 @@ export default function OnboardingScreen() {
                             style={[styles.progressBar, { backgroundColor: colors.ink }]}
                         />
                     </View>
+                    <Image
+                        source={require("@/assets/images/logo.png")}
+                        style={styles.logoTop}
+                        resizeMode="contain"
+                    />
                     <Text style={[styles.stepIndicator, { color: colors.ink }]}>0{current + 1}</Text>
                 </View>
 
@@ -234,5 +240,10 @@ const styles = StyleSheet.create({
     buttonText: {
         ...Typography.sans.label,
         fontSize: 16,
+    },
+    logoTop: {
+        width: 40,
+        height: 40,
+        marginRight: 12,
     },
 });
