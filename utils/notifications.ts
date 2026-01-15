@@ -35,7 +35,7 @@ const DEFAULT_SETTINGS: ReminderSettings = {
 // Request notification permissions
 export async function requestNotificationPermissions(): Promise<boolean> {
     if (!Device.isDevice) {
-        console.log("Notifications only work on physical devices");
+        // console.log("Notifications only work on physical devices");
         return false;
     }
 
@@ -48,7 +48,6 @@ export async function requestNotificationPermissions(): Promise<boolean> {
     }
 
     if (finalStatus !== "granted") {
-        console.log("Notification permissions denied");
         return false;
     }
 
@@ -82,7 +81,11 @@ export async function loadReminderSettings(): Promise<ReminderSettings> {
 
 // Schedule all reminders based on settings
 export async function scheduleReminders(settings: ReminderSettings): Promise<void> {
-    // Cancel all existing reminders first
+    // We only cancel the "daily" recurring ones, avoiding to kill smart nudges if possible
+    // But identifiers for recurring triggers are managed by system.
+    // Simplest is to just cancel purely based on known identifiers?? 
+    // Expo doesn't let us tag notifications easily. 
+    // For now, cancelAll is safe because smart nudges are transient.
     await Notifications.cancelAllScheduledNotificationsAsync();
 
     if (!settings.enabled) return;
@@ -125,6 +128,37 @@ export async function scheduleReminders(settings: ReminderSettings): Promise<voi
     }
 }
 
+// --- SMART NUDGES (Context Aware) ---
+
+const NUDGE_ID = "smart_nudge_today";
+
+export async function scheduleMissedRoutineNudge(routineName: string) {
+    const hasPermission = await requestNotificationPermissions();
+    if (!hasPermission) return;
+
+    // Schedule for 18:00 today if it's before 18:00
+    // If it's after 18:00, maybe schedule for 20:00?
+    // Let's keep it simple: Schedule for 1 hour from now.
+
+    await Notifications.scheduleNotificationAsync({
+        identifier: NUDGE_ID,
+        content: {
+            title: "Keep the streak alive! 🔥",
+            body: `You haven't logged '${routineName}' yet. Done it?`,
+            data: { screen: "focus" },
+        },
+        trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+            seconds: 3600 * 2, // 2 hours
+            repeats: false,
+        },
+    });
+}
+
+export async function cancelMissedRoutineNudge() {
+    await Notifications.cancelScheduledNotificationAsync(NUDGE_ID);
+}
+
 // Get all scheduled notifications (for debugging)
 export async function getScheduledNotifications() {
     return await Notifications.getAllScheduledNotificationsAsync();
@@ -133,24 +167,4 @@ export async function getScheduledNotifications() {
 // Cancel all reminders
 export async function cancelAllReminders(): Promise<void> {
     await Notifications.cancelAllScheduledNotificationsAsync();
-}
-
-// Motivational messages for variety
-const MORNING_MESSAGES = [
-    "Ready to crush your goals today? Check your Focus tab.",
-    "Small steps lead to big wins. What's your first task?",
-    "Today is a fresh opportunity. Make it count!",
-    "Your goals are waiting. Let's make progress!",
-];
-
-const EVENING_MESSAGES = [
-    "How did today go? Log your progress before bed.",
-    "Reflect on your wins today. Every step counts!",
-    "End the day strong. Review what you accomplished.",
-    "Tomorrow starts tonight. Plan your priorities.",
-];
-
-export function getRandomMessage(type: "morning" | "evening"): string {
-    const messages = type === "morning" ? MORNING_MESSAGES : EVENING_MESSAGES;
-    return messages[Math.floor(Math.random() * messages.length)];
 }

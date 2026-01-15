@@ -14,12 +14,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
-import Colors from "@/constants/colors";
+import { MotiView, MotiText } from "moti";
+import { useTheme } from "@/contexts/ThemeContext";
 import Typography from "@/constants/typography";
 import HelpTip from "@/components/HelpTip";
 import { TIPS } from "@/constants/tips";
 
 export default function HomeScreen() {
+  const { colors } = useTheme();
   const [goal, setGoal] = useState("");
   const [active, setActive] = useState(false);
   const router = useRouter();
@@ -31,7 +33,7 @@ export default function HomeScreen() {
     Animated.timing(focusAnim, {
       toValue: 1,
       duration: 400,
-      useNativeDriver: false,
+      useNativeDriver: false, // Colors don't support native driver
     }).start();
   };
 
@@ -49,7 +51,7 @@ export default function HomeScreen() {
   const bgStyle = {
     backgroundColor: focusAnim.interpolate({
       inputRange: [0, 1],
-      outputRange: [Colors.light.background, Colors.light.surface],
+      outputRange: [colors.background, colors.surface],
     }),
   };
 
@@ -70,25 +72,40 @@ export default function HomeScreen() {
             keyboardShouldPersistTaps="handled"
           >
             {/* The Statement Header */}
-            <View style={styles.header}>
-              <Text style={styles.label}>Manifesto</Text>
-              <Text style={styles.date}>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</Text>
-            </View>
+            <MotiView
+              from={{ opacity: 0, translateY: -20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 700 }}
+              style={[styles.header, { borderBottomColor: colors.divider }]}
+            >
+              <Text style={[styles.label, { color: colors.ink }]}>Manifesto</Text>
+              <Text style={[styles.date, { color: colors.inkMedium }]}>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</Text>
+            </MotiView>
 
             {/* The Question as Art */}
-            <View style={styles.promptContainer}>
-              <Text style={styles.promptText}>
+            <MotiView
+              from={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: 'timing', duration: 800, delay: 200 }}
+              style={styles.promptContainer}
+            >
+              <Text style={[styles.promptText, { color: colors.ink }]}>
                 What is your
-                <Text style={styles.italicText}> great work?</Text>
+                <Text style={[styles.italicText, { color: colors.accent }]}> great work?</Text>
               </Text>
-            </View>
+            </MotiView>
 
             {/* Minimally Invasive Input */}
-            <View style={styles.inputWrapper}>
+            <MotiView
+              from={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ type: 'timing', duration: 600, delay: 500 }}
+              style={styles.inputWrapper}
+            >
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.ink }]}
                 placeholder="Write your intention..."
-                placeholderTextColor={Colors.light.inkLight}
+                placeholderTextColor={colors.inkLight}
                 value={goal}
                 onChangeText={setGoal}
                 onFocus={handleFocus}
@@ -96,35 +113,44 @@ export default function HomeScreen() {
                 multiline
                 scrollEnabled={false}
               />
-              <View style={styles.inputLine} />
-            </View>
+              <View style={[styles.inputLine, { backgroundColor: colors.ink }]} />
+            </MotiView>
 
             {/* Floating Action Button (Shows only when typing) */}
             {goal.length > 0 && (
-              <Animated.View style={styles.fabContainer}>
+              <MotiView
+                from={{ opacity: 0, scale: 0.8, translateY: 20 }}
+                animate={{ opacity: 1, scale: 1, translateY: 0 }}
+                style={styles.fabContainer}
+              >
                 <Pressable
-                  style={styles.fab}
+                  style={[styles.fab, { backgroundColor: colors.ink, shadowColor: colors.accent }]}
                   onPress={() => {
                     Keyboard.dismiss();
                     router.push({ pathname: "/questionnaire", params: { goal: goal.trim() } });
                   }}
                 >
-                  <Text style={styles.fabText}>Create Blueprint</Text>
-                  <ArrowRight color={Colors.light.background} size={20} />
+                  <Text style={[styles.fabText, { color: colors.background }]}>Create Blueprint</Text>
+                  <ArrowRight color={colors.background} size={20} />
                 </Pressable>
-              </Animated.View>
+              </MotiView>
             )}
 
             {/* Inspiration as footnote, not chips */}
             {!active && goal.length === 0 && (
-              <View style={styles.inspirationFooter}>
-                <Text style={styles.inspirationLabel}>Observations:</Text>
+              <MotiView
+                from={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1000, duration: 800 }}
+                style={styles.inspirationFooter}
+              >
+                <Text style={[styles.inspirationLabel, { color: colors.inkLight }]}>Observations:</Text>
                 <View style={styles.inspirationList}>
-                  <Text style={styles.inspirationItem}>• Build a media empire</Text>
-                  <Text style={styles.inspirationItem}>• Run the Tokyo Marathon</Text>
-                  <Text style={styles.inspirationItem}>• Learn Classical Piano</Text>
+                  <Text style={[styles.inspirationItem, { color: colors.inkMedium }]}>• Build a media empire</Text>
+                  <Text style={[styles.inspirationItem, { color: colors.inkMedium }]}>• Run the Tokyo Marathon</Text>
+                  <Text style={[styles.inspirationItem, { color: colors.inkMedium }]}>• Learn Classical Piano</Text>
                 </View>
-              </View>
+              </MotiView>
             )}
 
           </ScrollView>
@@ -152,18 +178,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.divider,
     paddingBottom: 16,
     marginBottom: 60,
   },
   label: {
     ...Typography.sans.label,
-    color: Colors.light.ink,
   },
   date: {
     ...Typography.sans.caption,
     fontSize: 13,
-    color: Colors.light.inkMedium,
   },
   promptContainer: {
     marginBottom: 40,
@@ -172,11 +195,9 @@ const styles = StyleSheet.create({
     ...Typography.display.hero,
     fontSize: 48,
     lineHeight: 56,
-    color: Colors.light.ink,
   },
   italicText: {
     ...Typography.display.italic,
-    color: Colors.light.accent,
   },
   inputWrapper: {
     marginBottom: 40,
@@ -184,14 +205,12 @@ const styles = StyleSheet.create({
   },
   input: {
     ...Typography.display.h2,
-    color: Colors.light.ink,
     minHeight: 60,
     paddingBottom: 16,
     textAlignVertical: "top",
   },
   inputLine: {
     height: 1,
-    backgroundColor: Colors.light.ink,
     opacity: 0.2,
   },
   fabContainer: {
@@ -199,21 +218,18 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   fab: {
-    backgroundColor: Colors.light.ink,
     paddingVertical: 16,
     paddingHorizontal: 28,
     borderRadius: 4,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    shadowColor: Colors.light.accent,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
   },
   fabText: {
     ...Typography.sans.label,
-    color: Colors.light.background,
   },
   inspirationFooter: {
     marginBottom: 20,
@@ -221,7 +237,6 @@ const styles = StyleSheet.create({
   inspirationLabel: {
     ...Typography.sans.caption,
     marginBottom: 12,
-    color: Colors.light.inkLight,
     textTransform: "uppercase",
   },
   inspirationList: {
@@ -230,7 +245,6 @@ const styles = StyleSheet.create({
   inspirationItem: {
     ...Typography.sans.body,
     fontSize: 16,
-    color: Colors.light.inkMedium,
     fontStyle: "italic", // Hand-written note feel
     fontFamily: Platform.select({ ios: "Georgia-Italic", android: "serif" }),
   },

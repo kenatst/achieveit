@@ -11,6 +11,8 @@ import { useRouter } from "expo-router";
 import { Target, Check, MessageCircle, Calendar } from "lucide-react-native";
 import { useTheme } from "@/contexts/ThemeContext";
 import { usePlans } from "@/contexts/PlansContext";
+import { scheduleMissedRoutineNudge } from "@/utils/notifications";
+import { useEffect } from "react";
 
 export default function FocusScreen() {
     const router = useRouter();
@@ -79,6 +81,15 @@ export default function FocusScreen() {
             });
         });
     });
+
+    // Smart Nudge Logic: Schedule a nudge if routines are remaining
+    useEffect(() => {
+        const incompleteRoutines = todayRoutines.filter(r => !r.completed);
+        if (incompleteRoutines.length > 0) {
+            // Schedule for the first incomplete routine
+            scheduleMissedRoutineNudge(incompleteRoutines[0].routineName);
+        }
+    }, [todayRoutines]);
 
     const totalTasks = todayTasks.length + todayRoutines.length;
     const completedTasks =
