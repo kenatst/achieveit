@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Animated, Easing } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Check, AlertCircle } from "lucide-react-native";
-import Colors from "@/constants/colors";
+import { useTheme } from "@/contexts/ThemeContext";
 import { usePlans } from "@/contexts/PlansContext";
 import { QuestionnaireAnswer } from "@/types/plan";
 
@@ -18,6 +18,7 @@ const stages = [
 export default function GeneratingScreen() {
   const { goal, answers } = useLocalSearchParams<{ goal: string; answers: string }>();
   const router = useRouter();
+  const { colors } = useTheme();
   const { generatePlan, generationError } = usePlans();
   const [stage, setStage] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -79,15 +80,15 @@ export default function GeneratingScreen() {
 
   if (error || generationError) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.center}>
-            <View style={styles.errorIcon}>
-              <AlertCircle color={Colors.light.negative} size={36} />
+            <View style={[styles.errorIcon, { backgroundColor: colors.rustSoft }]}>
+              <AlertCircle color={colors.negative} size={36} />
             </View>
-            <Text style={styles.errorTitle}>Something went wrong</Text>
-            <Text style={styles.errorBody}>{error || generationError?.message}</Text>
-            <Text style={styles.errorLink} onPress={() => router.back()}>Go back</Text>
+            <Text style={[styles.errorTitle, { color: colors.ink }]}>Something went wrong</Text>
+            <Text style={[styles.errorBody, { color: colors.inkMedium }]}>{error || generationError?.message}</Text>
+            <Text style={[styles.errorLink, { color: colors.rust }]} onPress={() => router.back()}>Go back</Text>
           </View>
         </SafeAreaView>
       </View>
@@ -96,13 +97,13 @@ export default function GeneratingScreen() {
 
   if (done) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.center}>
-            <View style={styles.successIcon}>
+            <View style={[styles.successIcon, { backgroundColor: colors.sage }]}>
               <Check color="#FFFFFF" size={32} strokeWidth={3} />
             </View>
-            <Text style={styles.successTitle}>Your roadmap is ready</Text>
+            <Text style={[styles.successTitle, { color: colors.ink }]}>Your roadmap is ready</Text>
           </View>
         </SafeAreaView>
       </View>
@@ -110,22 +111,22 @@ export default function GeneratingScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.center}>
           {/* Spinner */}
           <Animated.View style={[styles.spinner, { transform: [{ rotate }] }]}>
-            <View style={styles.spinnerArc} />
+            <View style={[styles.spinnerArc, { borderColor: colors.divider, borderTopColor: colors.rust }]} />
           </Animated.View>
 
           {/* Title */}
-          <Text style={styles.title}>Building your roadmap</Text>
-          <Text style={styles.goalQuote}>"{goal}"</Text>
+          <Text style={[styles.title, { color: colors.ink }]}>Building your roadmap</Text>
+          <Text style={[styles.goalQuote, { color: colors.inkMedium }]}>"{goal}"</Text>
 
           {/* Progress */}
           <View style={styles.progressSection}>
-            <View style={styles.progressTrack}>
-              <Animated.View style={[styles.progressFill, { width: progressWidth }]} />
+            <View style={[styles.progressTrack, { backgroundColor: colors.divider }]}>
+              <Animated.View style={[styles.progressFill, { backgroundColor: colors.rust, width: progressWidth }]} />
             </View>
 
             <View style={styles.stages}>
@@ -133,15 +134,17 @@ export default function GeneratingScreen() {
                 <View key={i} style={[styles.stageRow, i === stage && styles.stageRowActive]}>
                   <View style={[
                     styles.stageDot,
-                    i < stage && styles.stageDotDone,
-                    i === stage && styles.stageDotActive,
+                    { backgroundColor: colors.divider },
+                    i < stage && { backgroundColor: colors.sage },
+                    i === stage && { backgroundColor: colors.rust },
                   ]}>
                     {i < stage && <Check color="#FFFFFF" size={10} strokeWidth={3} />}
                   </View>
                   <Text style={[
                     styles.stageText,
-                    i === stage && styles.stageTextActive,
-                    i < stage && styles.stageTextDone,
+                    { color: colors.inkMedium },
+                    i === stage && { color: colors.ink, fontWeight: "500" },
+                    i < stage && { textDecorationLine: "line-through", color: colors.inkFaint },
                   ]}>
                     {s}
                   </Text>
@@ -156,7 +159,7 @@ export default function GeneratingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.light.background },
+  container: { flex: 1 },
   safeArea: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
   // Spinner
@@ -166,21 +169,17 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     borderWidth: 3,
-    borderColor: Colors.light.divider,
-    borderTopColor: Colors.light.rust,
   },
   // Content
   title: {
     fontSize: 26,
     fontWeight: "700",
-    color: Colors.light.ink,
     textAlign: "center",
     letterSpacing: -0.4,
     marginBottom: 12,
   },
   goalQuote: {
     fontSize: 16,
-    color: Colors.light.inkMuted,
     textAlign: "center",
     fontStyle: "italic",
     marginBottom: 40,
@@ -190,14 +189,12 @@ const styles = StyleSheet.create({
   progressSection: { width: "100%" },
   progressTrack: {
     height: 4,
-    backgroundColor: Colors.light.divider,
     borderRadius: 2,
     marginBottom: 24,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: Colors.light.rust,
     borderRadius: 2,
   },
   stages: { gap: 14 },
@@ -211,26 +208,19 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: Colors.light.divider,
     marginRight: 14,
     alignItems: "center",
     justifyContent: "center",
   },
-  stageDotActive: { backgroundColor: Colors.light.rust },
-  stageDotDone: { backgroundColor: Colors.light.sage },
   stageText: {
     fontSize: 15,
-    color: Colors.light.inkMuted,
     fontWeight: "400",
   },
-  stageTextActive: { color: Colors.light.ink, fontWeight: "500" },
-  stageTextDone: { textDecorationLine: "line-through", color: Colors.light.inkFaint },
   // Success
   successIcon: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Colors.light.sage,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 20,
@@ -238,14 +228,12 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 22,
     fontWeight: "600",
-    color: Colors.light.ink,
   },
   // Error
   errorIcon: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Colors.light.rustSoft,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 20,
@@ -253,19 +241,16 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 22,
     fontWeight: "600",
-    color: Colors.light.ink,
     marginBottom: 8,
   },
   errorBody: {
     fontSize: 15,
-    color: Colors.light.inkMuted,
     textAlign: "center",
     lineHeight: 22,
     marginBottom: 20,
   },
   errorLink: {
     fontSize: 16,
-    color: Colors.light.rust,
     fontWeight: "500",
   },
 });

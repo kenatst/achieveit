@@ -2,7 +2,52 @@
 // Concept: "Vogue Cover" / "Old Money Aesthetic"
 // Natural, expensive materials: Alabaster, Ink, Vermilion, Silk
 
-const light = {
+export interface ColorScheme {
+  background: string;
+  backgroundDeep: string;
+  ink: string;
+  inkMedium: string;
+  inkLight: string;
+  inkFaint: string;
+  inkSoft: string;
+  inkMuted: string;
+  accent: string;
+  accentGlow: string;
+  success: string;
+  successLight: string;
+  surface: string;
+  surfaceHighlight: string;
+  surfacePressed: string;
+  divider: string;
+  dividerStrong: string;
+  error: string;
+  warning: string;
+  negative: string;
+  text: string;
+  textMuted: string;
+  textSecondary: string;
+  rust: string;
+  rustSoft: string;
+  sage: string;
+  sageSoft: string;
+}
+
+export interface ShadowItem {
+  shadowColor: string;
+  shadowOffset: { width: number; height: number };
+  shadowOpacity: number;
+  shadowRadius: number;
+  elevation: number;
+}
+
+export interface ShadowScheme {
+  sm: ShadowItem;
+  card: ShadowItem;
+  md: ShadowItem;
+  floating: ShadowItem;
+}
+
+const light: ColorScheme = {
   // Canvas: A rich, warm alabaster text (not white, not yellow - expensive paper)
   background: "#FDFCF8",
   backgroundDeep: "#F5F2EB",
@@ -13,6 +58,7 @@ const light = {
   inkLight: "#8C8C84",  // Stone
   inkFaint: "#C8C8C0",  // Very light ink
   inkSoft: "#6A6A62",   // Medium-soft ink
+  inkMuted: "#4A4A45",
 
   // Vermilion: The signature accent. Aggressive, classic, unavoidable.
   accent: "#D94528",
@@ -44,12 +90,9 @@ const light = {
   rustSoft: "rgba(217, 69, 40, 0.12)",
   sage: "#2A3B30",
   sageSoft: "rgba(42, 59, 48, 0.12)",
-  inkMuted: "#4A4A45",
 };
 
-// DARK MODE: "Midnight Study" aesthetic
-// Rich charcoal with warm undertones, vermilion accents pop
-const dark = {
+const dark: ColorScheme = {
   // Canvas: Deep charcoal with warm undertones
   background: "#0D0D0C",
   backgroundDeep: "#161614",
@@ -60,6 +103,7 @@ const dark = {
   inkLight: "#8C8C84",
   inkFaint: "#4A4A45",
   inkSoft: "#A8A8A0",
+  inkMuted: "#C8C8C0",
 
   // Vermilion: Slightly brighter for dark backgrounds
   accent: "#E85A3D",
@@ -91,11 +135,9 @@ const dark = {
   rustSoft: "rgba(232, 90, 61, 0.15)",
   sage: "#4A6B54",
   sageSoft: "rgba(74, 107, 84, 0.15)",
-  inkMuted: "#C8C8C0",
 };
 
-// Shadows work better with colored shadows in dark mode
-const shadows = {
+const shadows: { light: ShadowScheme; dark: ShadowScheme } = {
   light: {
     sm: {
       shadowColor: "#2A2825",
@@ -158,7 +200,6 @@ const shadows = {
   },
 };
 
-export type ColorScheme = typeof light;
 export type Theme = "light" | "dark";
 
 export const colors = { light, dark };

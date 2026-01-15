@@ -9,11 +9,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Plus, ChevronRight, FolderOpen } from "lucide-react-native";
-import Colors from "@/constants/colors";
+import { useTheme } from "@/contexts/ThemeContext";
 import { usePlans } from "@/contexts/PlansContext";
 
 export default function PlansScreen() {
   const { plans } = usePlans();
+  const { colors, shadows } = useTheme();
   const router = useRouter();
 
   const timeAgo = (date: string) => {
@@ -28,22 +29,22 @@ export default function PlansScreen() {
 
   if (plans.length === 0) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <SafeAreaView style={styles.safeArea} edges={["top"]}>
           <View style={styles.header}>
-            <Text style={styles.title}>Plans</Text>
+            <Text style={[styles.title, { color: colors.ink }]}>Plans</Text>
           </View>
 
           <View style={styles.empty}>
-            <View style={styles.emptyIcon}>
-              <FolderOpen color={Colors.light.inkFaint} size={36} strokeWidth={1.5} />
+            <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundDeep }]}>
+              <FolderOpen color={colors.inkFaint} size={36} strokeWidth={1.5} />
             </View>
-            <Text style={styles.emptyTitle}>No plans yet</Text>
-            <Text style={styles.emptyBody}>
+            <Text style={[styles.emptyTitle, { color: colors.ink }]}>No plans yet</Text>
+            <Text style={[styles.emptyBody, { color: colors.inkMedium }]}>
               Your roadmaps will appear here once you create one
             </Text>
             <Pressable
-              style={styles.emptyBtn}
+              style={[styles.emptyBtn, { backgroundColor: colors.rust }]}
               onPress={() => router.push("/(tabs)")}
             >
               <Plus color="#FFFFFF" size={18} strokeWidth={2.5} />
@@ -56,11 +57,11 @@ export default function PlansScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <View style={styles.header}>
-          <Text style={styles.title}>Plans</Text>
-          <Text style={styles.count}>{plans.length} total</Text>
+          <Text style={[styles.title, { color: colors.ink }]}>Plans</Text>
+          <Text style={[styles.count, { color: colors.inkMedium }]}>{plans.length} total</Text>
         </View>
 
         <ScrollView
@@ -75,44 +76,50 @@ export default function PlansScreen() {
                 key={plan.id}
                 style={({ pressed }) => [
                   styles.card,
-                  pressed && styles.cardPressed,
+                  { backgroundColor: colors.surface },
+                  shadows.md,
+                  pressed && { backgroundColor: colors.surfacePressed },
                 ]}
                 onPress={() => router.push(`/plan/${plan.id}` as any)}
               >
                 {/* Left accent */}
-                <View style={[styles.cardAccent, { backgroundColor: Colors.light.rust }]} />
+                <View style={[styles.cardAccent, { backgroundColor: colors.rust }]} />
 
                 <View style={styles.cardContent}>
-                  <Text style={styles.cardTitle} numberOfLines={2}>
+                  <Text style={[styles.cardTitle, { color: colors.ink }]} numberOfLines={2}>
                     {plan.content.title}
                   </Text>
-                  <Text style={styles.cardGoal} numberOfLines={1}>
+                  <Text style={[styles.cardGoal, { color: colors.inkMedium }]} numberOfLines={1}>
                     {plan.goal}
                   </Text>
 
                   <View style={styles.cardMeta}>
-                    <Text style={styles.cardDate}>{timeAgo(plan.createdAt)}</Text>
+                    <Text style={[styles.cardDate, { color: colors.inkFaint }]}>{timeAgo(plan.createdAt)}</Text>
                     <View style={styles.cardProgress}>
-                      <View style={styles.cardProgressTrack}>
-                        <View style={[styles.cardProgressFill, { width: `${progress}%` }]} />
+                      <View style={[styles.cardProgressTrack, { backgroundColor: colors.divider }]}>
+                        <View style={[styles.cardProgressFill, { backgroundColor: colors.sage, width: `${progress}%` }]} />
                       </View>
-                      <Text style={styles.cardProgressText}>{progress}%</Text>
+                      <Text style={[styles.cardProgressText, { color: colors.sage }]}>{progress}%</Text>
                     </View>
                   </View>
                 </View>
 
-                <ChevronRight color={Colors.light.inkFaint} size={20} />
+                <ChevronRight color={colors.inkFaint} size={20} />
               </Pressable>
             );
           })}
 
           {/* Add new */}
           <Pressable
-            style={({ pressed }) => [styles.addCard, pressed && styles.addCardPressed]}
+            style={({ pressed }) => [
+              styles.addCard,
+              { borderColor: colors.divider },
+              pressed && { backgroundColor: colors.surfacePressed }
+            ]}
             onPress={() => router.push("/(tabs)")}
           >
-            <Plus color={Colors.light.rust} size={20} />
-            <Text style={styles.addText}>Create new plan</Text>
+            <Plus color={colors.rust} size={20} />
+            <Text style={[styles.addText, { color: colors.rust }]}>Create new plan</Text>
           </Pressable>
 
           <View style={{ height: 32 }} />
@@ -123,7 +130,7 @@ export default function PlansScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.light.background },
+  container: { flex: 1 },
   safeArea: { flex: 1 },
   header: {
     paddingHorizontal: 24,
@@ -133,12 +140,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 34,
     fontWeight: "700",
-    color: Colors.light.ink,
     letterSpacing: -0.6,
   },
   count: {
     fontSize: 15,
-    color: Colors.light.inkMuted,
     marginTop: 4,
   },
   scrollContent: { paddingHorizontal: 24 },
@@ -146,13 +151,10 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.light.surface,
     borderRadius: 16,
     marginBottom: 12,
     overflow: "hidden",
-    ...Colors.shadows?.md,
   },
-  cardPressed: { backgroundColor: Colors.light.surfacePressed },
   cardAccent: {
     width: 4,
     alignSelf: "stretch",
@@ -164,13 +166,11 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 17,
     fontWeight: "600",
-    color: Colors.light.ink,
     lineHeight: 23,
     marginBottom: 4,
   },
   cardGoal: {
     fontSize: 14,
-    color: Colors.light.inkMuted,
     marginBottom: 14,
   },
   cardMeta: {
@@ -180,7 +180,6 @@ const styles = StyleSheet.create({
   },
   cardDate: {
     fontSize: 13,
-    color: Colors.light.inkFaint,
   },
   cardProgress: {
     flexDirection: "row",
@@ -190,19 +189,16 @@ const styles = StyleSheet.create({
   cardProgressTrack: {
     width: 60,
     height: 4,
-    backgroundColor: Colors.light.divider,
     borderRadius: 2,
     overflow: "hidden",
   },
   cardProgressFill: {
     height: "100%",
-    backgroundColor: Colors.light.sage,
     borderRadius: 2,
   },
   cardProgressText: {
     fontSize: 13,
     fontWeight: "600",
-    color: Colors.light.sage,
     minWidth: 36,
     textAlign: "right",
   },
@@ -215,13 +211,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderStyle: "dashed",
-    borderColor: Colors.light.divider,
     gap: 10,
   },
-  addCardPressed: { backgroundColor: Colors.light.surfacePressed },
   addText: {
     fontSize: 15,
-    color: Colors.light.rust,
     fontWeight: "500",
   },
   // Empty
@@ -235,7 +228,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 24,
-    backgroundColor: Colors.light.backgroundDeep,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 24,
@@ -243,12 +235,10 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 22,
     fontWeight: "600",
-    color: Colors.light.ink,
     marginBottom: 8,
   },
   emptyBody: {
     fontSize: 16,
-    color: Colors.light.inkMuted,
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 28,
@@ -256,7 +246,6 @@ const styles = StyleSheet.create({
   emptyBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.light.rust,
     height: 52,
     paddingHorizontal: 24,
     borderRadius: 14,
