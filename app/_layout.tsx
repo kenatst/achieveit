@@ -11,7 +11,7 @@ import Colors from "@/constants/colors";
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
-const ONBOARDING_KEY = "has_completed_onboarding";
+const ONBOARDING_KEY = "has_completed_onboarding_v1";
 
 function RootLayoutNav() {
   const [isReady, setIsReady] = useState(false);
@@ -19,18 +19,20 @@ function RootLayoutNav() {
   const router = useRouter();
   const segments = useSegments();
 
+  const checkOnboarding = async () => {
+    try {
+      const value = await AsyncStorage.getItem(ONBOARDING_KEY);
+      setHasOnboarded(value === "true");
+    } catch (e) {
+      setHasOnboarded(false);
+    }
+  };
+
   useEffect(() => {
-    const checkOnboarding = async () => {
-      try {
-        const value = await AsyncStorage.getItem(ONBOARDING_KEY);
-        setHasOnboarded(value === "true");
-      } catch (e) {
-        setHasOnboarded(false);
-      }
+    checkOnboarding().then(() => {
       setIsReady(true);
       SplashScreen.hideAsync();
-    };
-    checkOnboarding();
+    });
   }, []);
 
   useEffect(() => {
@@ -39,7 +41,16 @@ function RootLayoutNav() {
     const inOnboarding = segments[0] === "onboarding";
 
     if (!hasOnboarded && !inOnboarding) {
-      router.replace("/onboarding");
+      // Re-verify immediately to check if onboarding was just completed in another screen component
+      AsyncStorage.getItem(ONBOARDING_KEY).then(val => {
+        if (val === "true") {
+          setHasOnboarded(true);
+        } else {
+          router.replace("/onboarding");
+        }
+      });
+    } else if (hasOnboarded && inOnboarding) {
+      router.replace("/(tabs)");
     }
   }, [isReady, hasOnboarded, segments]);
 

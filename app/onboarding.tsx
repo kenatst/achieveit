@@ -17,7 +17,7 @@ import Typography from "@/constants/typography";
 import { ArrowRight } from "lucide-react-native";
 
 const { width, height } = Dimensions.get("window");
-const ONBOARDING_KEY = "has_completed_onboarding_god_tier";
+const ONBOARDING_KEY = "has_completed_onboarding_v1";
 
 const slides = [
     {
@@ -228,7 +228,8 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.light.ink,
     },
     stepIndicator: {
-        ...Typography.sans.number,
+        fontSize: 15,
+        fontWeight: "600",
         color: Colors.light.ink,
     },
     content: {
@@ -275,8 +276,6 @@ const styles = StyleSheet.create({
     mainButton: {
         height: 64, // Taller, more substantial
         backgroundColor: Colors.light.ink,
-        borderRadius: 0, // Sharp corners? Or very slight? Let's go slight for couture feeling.
-        // Actually, couture often mixes sharp and round. Let's do 4px.
         borderRadius: 4,
         flexDirection: "row",
         alignItems: "center",
