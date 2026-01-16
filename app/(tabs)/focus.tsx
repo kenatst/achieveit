@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
     View,
     Text,
@@ -7,16 +7,15 @@ import {
     Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { Target, Check, MessageCircle, Calendar } from "lucide-react-native";
+import { Target, Check, Calendar } from "lucide-react-native";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { usePlans } from "@/contexts/PlansContext";
 import { scheduleMissedRoutineNudge } from "@/utils/notifications";
-import { useEffect } from "react";
 
 export default function FocusScreen() {
-    const router = useRouter();
     const { colors, shadows } = useTheme();
+    const { t } = useLanguage();
     const { plans, toggleWeeklyTask, logRoutine } = usePlans();
 
     const today = new Date();
@@ -82,11 +81,10 @@ export default function FocusScreen() {
         });
     });
 
-    // Smart Nudge Logic: Schedule a nudge if routines are remaining
+    // Smart Nudge Logic
     useEffect(() => {
         const incompleteRoutines = todayRoutines.filter(r => !r.completed);
         if (incompleteRoutines.length > 0) {
-            // Schedule for the first incomplete routine
             scheduleMissedRoutineNudge(incompleteRoutines[0].routineName);
         }
     }, [todayRoutines]);
@@ -97,12 +95,10 @@ export default function FocusScreen() {
         todayRoutines.filter((r) => r.completed).length;
     const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-    // Toggle task using PlansContext function
     const handleToggleTask = (task: TodayTask) => {
         toggleWeeklyTask(task.planId, task.weekIndex, task.taskIndex, task.task);
     };
 
-    // Toggle routine using PlansContext function
     const handleToggleRoutine = (routine: TodayRoutine) => {
         logRoutine(routine.planId, routine.routineIndex, routine.routineName);
     };
@@ -117,7 +113,7 @@ export default function FocusScreen() {
                             {formattedDate.toUpperCase()}
                         </Text>
                         <Text style={[styles.title, { color: colors.ink }]}>
-                            Today's Focus
+                            {t("focus.title")}
                         </Text>
                     </View>
 
@@ -129,12 +125,12 @@ export default function FocusScreen() {
                                     {progressPercent}%
                                 </Text>
                                 <Text style={[styles.progressLabel, { color: colors.inkMuted }]}>
-                                    complete
+                                    {t("common.complete")}
                                 </Text>
                             </View>
                         </View>
                         <Text style={[styles.progressStats, { color: colors.inkMedium }]}>
-                            {completedTasks} of {totalTasks} tasks done
+                            {completedTasks} {t("focus.tasksComplete", { total: totalTasks })}
                         </Text>
                     </View>
 
@@ -144,7 +140,7 @@ export default function FocusScreen() {
                             <View style={styles.sectionHeader}>
                                 <Target color={colors.rust} size={18} />
                                 <Text style={[styles.sectionTitle, { color: colors.ink }]}>
-                                    Key Actions
+                                    {t("focus.keyActions")}
                                 </Text>
                             </View>
                             {todayTasks.map((item) => (
@@ -187,7 +183,7 @@ export default function FocusScreen() {
                             <View style={styles.sectionHeader}>
                                 <Calendar color={colors.sage} size={18} />
                                 <Text style={[styles.sectionTitle, { color: colors.ink }]}>
-                                    Daily Routines
+                                    {t("focus.dailyRoutines")}
                                 </Text>
                             </View>
                             {todayRoutines.map((routine) => (
@@ -224,15 +220,13 @@ export default function FocusScreen() {
                         <View style={[styles.emptyCard, { backgroundColor: colors.surface }, shadows.card]}>
                             <Target color={colors.inkMuted} size={40} strokeWidth={1.5} />
                             <Text style={[styles.emptyTitle, { color: colors.ink }]}>
-                                No tasks for today
+                                {t("focus.emptyTitle")}
                             </Text>
                             <Text style={[styles.emptySubtitle, { color: colors.inkMedium }]}>
-                                Create a plan to get started with your goals
+                                {t("focus.emptySubtitle")}
                             </Text>
                         </View>
                     )}
-
-                    {/* Coach CTA - Removed, only accessible from plan detail */}
                 </ScrollView>
             </SafeAreaView>
         </View>

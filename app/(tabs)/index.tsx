@@ -15,14 +15,16 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
-import { MotiView, MotiText } from "moti";
+import { MotiView } from "moti";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import Typography from "@/constants/typography";
 import HelpTip from "@/components/HelpTip";
 import { TIPS } from "@/constants/tips";
 
 export default function HomeScreen() {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const [goal, setGoal] = useState("");
   const [active, setActive] = useState(false);
   const router = useRouter();
@@ -34,7 +36,7 @@ export default function HomeScreen() {
     Animated.timing(focusAnim, {
       toValue: 1,
       duration: 400,
-      useNativeDriver: false, // Colors don't support native driver
+      useNativeDriver: false,
     }).start();
   };
 
@@ -95,8 +97,8 @@ export default function HomeScreen() {
               style={styles.promptContainer}
             >
               <Text style={[styles.promptText, { color: colors.ink }]}>
-                What is your
-                <Text style={[styles.italicText, { color: colors.accent }]}> great work?</Text>
+                {t("home.prompt")}
+                <Text style={[styles.italicText, { color: colors.accent }]}>{t("home.promptHighlight")}</Text>
               </Text>
             </MotiView>
 
@@ -109,7 +111,7 @@ export default function HomeScreen() {
             >
               <TextInput
                 style={[styles.input, { color: colors.ink }]}
-                placeholder="Write your intention..."
+                placeholder={t("home.placeholder")}
                 placeholderTextColor={colors.inkLight}
                 value={goal}
                 onChangeText={setGoal}
@@ -135,7 +137,7 @@ export default function HomeScreen() {
                     router.push({ pathname: "/questionnaire", params: { goal: goal.trim() } });
                   }}
                 >
-                  <Text style={[styles.fabText, { color: colors.background }]}>Create Blueprint</Text>
+                  <Text style={[styles.fabText, { color: colors.background }]}>{t("home.createBlueprint")}</Text>
                   <ArrowRight color={colors.background} size={20} />
                 </Pressable>
               </MotiView>
@@ -149,11 +151,11 @@ export default function HomeScreen() {
                 transition={{ delay: 1000, duration: 800 }}
                 style={styles.inspirationFooter}
               >
-                <Text style={[styles.inspirationLabel, { color: colors.inkLight }]}>Observations:</Text>
+                <Text style={[styles.inspirationLabel, { color: colors.inkLight }]}>{t("home.observations")}</Text>
                 <View style={styles.inspirationList}>
-                  <Text style={[styles.inspirationItem, { color: colors.inkMedium }]}>• Build a media empire</Text>
-                  <Text style={[styles.inspirationItem, { color: colors.inkMedium }]}>• Run the Tokyo Marathon</Text>
-                  <Text style={[styles.inspirationItem, { color: colors.inkMedium }]}>• Learn Classical Piano</Text>
+                  <Text style={[styles.inspirationItem, { color: colors.inkMedium }]}>{t("home.inspiration1")}</Text>
+                  <Text style={[styles.inspirationItem, { color: colors.inkMedium }]}>{t("home.inspiration2")}</Text>
+                  <Text style={[styles.inspirationItem, { color: colors.inkMedium }]}>{t("home.inspiration3")}</Text>
                 </View>
               </MotiView>
             )}
@@ -176,7 +178,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 28,
     paddingTop: 20,
-    justifyContent: "space-between", // Pushes footer down
+    justifyContent: "space-between",
     paddingBottom: 40,
   },
   header: {
@@ -186,8 +188,9 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     marginBottom: 60,
   },
-  label: {
-    ...Typography.sans.label,
+  logo: {
+    width: 60,
+    height: 30,
   },
   date: {
     ...Typography.sans.caption,
@@ -250,11 +253,7 @@ const styles = StyleSheet.create({
   inspirationItem: {
     ...Typography.sans.body,
     fontSize: 16,
-    fontStyle: "italic", // Hand-written note feel
+    fontStyle: "italic",
     fontFamily: Platform.select({ ios: "Georgia-Italic", android: "serif" }),
-  },
-  logo: {
-    width: 60,
-    height: 30,
   },
 });

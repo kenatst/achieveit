@@ -7,6 +7,7 @@ import { StatusBar } from "expo-status-bar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { PlansProvider } from "@/contexts/PlansContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -116,11 +117,13 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <ThemeProvider>
-          <PlansProvider>
-            <RootLayoutNav />
-          </PlansProvider>
-        </ThemeProvider>
+        <LanguageProvider>
+          <ThemeProvider>
+            <PlansProvider>
+              <RootLayoutNav />
+            </PlansProvider>
+          </ThemeProvider>
+        </LanguageProvider>
       </GestureHandlerRootView>
     </QueryClientProvider>
   );

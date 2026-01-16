@@ -3,12 +3,15 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { TrendingUp, ChevronRight, ArrowUpRight } from "lucide-react-native";
-import Colors from "@/constants/colors";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { usePlans } from "@/contexts/PlansContext";
 import { ActivityLogEntry } from "@/types/plan";
 
 export default function DashboardScreen() {
     const { plans } = usePlans();
+    const { colors, shadows } = useTheme();
+    const { t } = useLanguage();
     const router = useRouter();
 
     const totalPlans = plans.length;
@@ -48,7 +51,7 @@ export default function DashboardScreen() {
         const mins = Math.floor(diff / 60000);
         const hrs = Math.floor(diff / 3600000);
         const days = Math.floor(diff / 86400000);
-        if (mins < 1) return "now";
+        if (mins < 1) return t("common.today");
         if (mins < 60) return `${mins}m`;
         if (hrs < 24) return `${hrs}h`;
         return `${days}d`;
@@ -56,21 +59,21 @@ export default function DashboardScreen() {
 
     if (totalPlans === 0) {
         return (
-            <View style={styles.container}>
+            <View style={[styles.container, { backgroundColor: colors.background }]}>
                 <SafeAreaView style={styles.safeArea} edges={["top"]}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>Progress</Text>
+                        <Text style={[styles.title, { color: colors.ink }]}>{t("dashboard.title")}</Text>
                     </View>
                     <View style={styles.empty}>
-                        <View style={styles.emptyIcon}>
-                            <TrendingUp color={Colors.light.inkFaint} size={32} strokeWidth={1.5} />
+                        <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundDeep }]}>
+                            <TrendingUp color={colors.inkFaint} size={32} strokeWidth={1.5} />
                         </View>
-                        <Text style={styles.emptyTitle}>Nothing here yet</Text>
-                        <Text style={styles.emptyBody}>
-                            Create a plan and your progress will show up here
+                        <Text style={[styles.emptyTitle, { color: colors.ink }]}>{t("dashboard.noActivity")}</Text>
+                        <Text style={[styles.emptyBody, { color: colors.inkMedium }]}>
+                            {t("plans.noPlanSubtitle")}
                         </Text>
-                        <Pressable style={styles.emptyBtn} onPress={() => router.push("/(tabs)")}>
-                            <Text style={styles.emptyBtnText}>Create a plan</Text>
+                        <Pressable style={[styles.emptyBtn, { backgroundColor: colors.rust }]} onPress={() => router.push("/(tabs)")}>
+                            <Text style={styles.emptyBtnText}>{t("plans.createNew")}</Text>
                             <ArrowUpRight color="#FFFFFF" size={18} />
                         </Pressable>
                     </View>
@@ -80,56 +83,56 @@ export default function DashboardScreen() {
     }
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             <SafeAreaView style={styles.safeArea} edges={["top"]}>
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <Text style={styles.title}>Progress</Text>
+                        <Text style={[styles.title, { color: colors.ink }]}>{t("dashboard.title")}</Text>
                     </View>
 
                     {/* Big stat */}
-                    <View style={styles.heroCard}>
-                        <Text style={styles.heroNumber}>{overall}</Text>
-                        <Text style={styles.heroPercent}>%</Text>
-                        <Text style={styles.heroLabel}>overall completion</Text>
+                    <View style={[styles.heroCard, { backgroundColor: colors.surface }, shadows.md]}>
+                        <Text style={[styles.heroNumber, { color: colors.rust }]}>{overall}</Text>
+                        <Text style={[styles.heroPercent, { color: colors.rust }]}>%</Text>
+                        <Text style={[styles.heroLabel, { color: colors.inkMuted }]}>{t("dashboard.overallProgress")}</Text>
                     </View>
 
                     {/* Stats row */}
-                    <View style={styles.statsRow}>
+                    <View style={[styles.statsRow, { backgroundColor: colors.surface }, shadows.sm]}>
                         <View style={styles.stat}>
-                            <Text style={styles.statValue}>{totalDone}</Text>
-                            <Text style={styles.statLabel}>Tasks done</Text>
+                            <Text style={[styles.statValue, { color: colors.ink }]}>{totalDone}</Text>
+                            <Text style={[styles.statLabel, { color: colors.inkMuted }]}>{t("dashboard.completedTasks")}</Text>
                         </View>
-                        <View style={styles.statDivider} />
+                        <View style={[styles.statDivider, { backgroundColor: colors.divider }]} />
                         <View style={styles.stat}>
-                            <Text style={styles.statValue}>{activePlans}</Text>
-                            <Text style={styles.statLabel}>Active</Text>
+                            <Text style={[styles.statValue, { color: colors.ink }]}>{activePlans}</Text>
+                            <Text style={[styles.statLabel, { color: colors.inkMuted }]}>{t("dashboard.activePlans")}</Text>
                         </View>
-                        <View style={styles.statDivider} />
+                        <View style={[styles.statDivider, { backgroundColor: colors.divider }]} />
                         <View style={styles.stat}>
-                            <Text style={styles.statValue}>{completedPlans}</Text>
-                            <Text style={styles.statLabel}>Done</Text>
+                            <Text style={[styles.statValue, { color: colors.ink }]}>{completedPlans}</Text>
+                            <Text style={[styles.statLabel, { color: colors.inkMuted }]}>{t("common.done")}</Text>
                         </View>
                     </View>
 
                     {/* Plans */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Your plans</Text>
+                        <Text style={[styles.sectionTitle, { color: colors.inkFaint }]}>{t("plans.title")}</Text>
                         {plans.map(plan => (
                             <Pressable
                                 key={plan.id}
-                                style={({ pressed }) => [styles.planRow, pressed && styles.planRowPressed]}
+                                style={({ pressed }) => [styles.planRow, { borderBottomColor: colors.divider }, pressed && { backgroundColor: colors.surfacePressed }]}
                                 onPress={() => router.push(`/plan/${plan.id}` as any)}
                             >
                                 <View style={styles.planInfo}>
-                                    <Text style={styles.planTitle} numberOfLines={1}>{plan.content.title}</Text>
-                                    <View style={styles.planProgressBar}>
-                                        <View style={[styles.planProgressFill, { width: `${plan.progress.overallProgress}%` }]} />
+                                    <Text style={[styles.planTitle, { color: colors.ink }]} numberOfLines={1}>{plan.content.title}</Text>
+                                    <View style={[styles.planProgressBar, { backgroundColor: colors.divider }]}>
+                                        <View style={[styles.planProgressFill, { backgroundColor: colors.sage, width: `${plan.progress.overallProgress}%` }]} />
                                     </View>
                                 </View>
-                                <Text style={styles.planPercent}>{plan.progress.overallProgress}%</Text>
-                                <ChevronRight color={Colors.light.inkFaint} size={18} />
+                                <Text style={[styles.planPercent, { color: colors.sage }]}>{plan.progress.overallProgress}%</Text>
+                                <ChevronRight color={colors.inkFaint} size={18} />
                             </Pressable>
                         ))}
                     </View>
@@ -137,12 +140,12 @@ export default function DashboardScreen() {
                     {/* Activity */}
                     {recentActivity.length > 0 && (
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Recent activity</Text>
+                            <Text style={[styles.sectionTitle, { color: colors.inkFaint }]}>{t("dashboard.recentActivity")}</Text>
                             {recentActivity.map((a, i) => (
-                                <View key={a.id} style={[styles.activityRow, i === recentActivity.length - 1 && styles.activityRowLast]}>
-                                    <View style={styles.activityDot} />
-                                    <Text style={styles.activityText} numberOfLines={1}>{a.description}</Text>
-                                    <Text style={styles.activityTime}>{timeAgo(a.timestamp)}</Text>
+                                <View key={a.id} style={[styles.activityRow, { borderBottomColor: colors.divider }, i === recentActivity.length - 1 && styles.activityRowLast]}>
+                                    <View style={[styles.activityDot, { backgroundColor: colors.rust }]} />
+                                    <Text style={[styles.activityText, { color: colors.ink }]} numberOfLines={1}>{a.description}</Text>
+                                    <Text style={[styles.activityTime, { color: colors.inkFaint }]}>{timeAgo(a.timestamp)}</Text>
                                 </View>
                             ))}
                         </View>
@@ -156,154 +159,125 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.light.background },
+    container: { flex: 1 },
     safeArea: { flex: 1 },
     scroll: { paddingHorizontal: 24 },
     header: { paddingTop: 24, paddingBottom: 16 },
     title: {
         fontSize: 34,
         fontWeight: "700",
-        color: Colors.light.ink,
         letterSpacing: -0.6,
     },
-    // Hero
     heroCard: {
-        backgroundColor: Colors.light.surface,
         borderRadius: 20,
         paddingVertical: 32,
         alignItems: "center",
         marginBottom: 24,
-        ...Colors.shadows?.md,
     },
     heroNumber: {
         fontSize: 72,
         fontWeight: "200",
-        color: Colors.light.rust,
         letterSpacing: -4,
         lineHeight: 76,
     },
     heroPercent: {
         fontSize: 24,
         fontWeight: "300",
-        color: Colors.light.rust,
         marginTop: -4,
     },
     heroLabel: {
         fontSize: 14,
-        color: Colors.light.inkMuted,
         marginTop: 8,
         textTransform: "uppercase",
         letterSpacing: 1,
     },
-    // Stats
     statsRow: {
         flexDirection: "row",
-        backgroundColor: Colors.light.surface,
         borderRadius: 16,
         paddingVertical: 20,
         marginBottom: 32,
-        ...Colors.shadows?.sm,
     },
     stat: { flex: 1, alignItems: "center" },
     statValue: {
         fontSize: 26,
         fontWeight: "600",
-        color: Colors.light.ink,
         letterSpacing: -0.5,
     },
     statLabel: {
         fontSize: 12,
-        color: Colors.light.inkMuted,
         marginTop: 4,
     },
     statDivider: {
         width: 1,
-        backgroundColor: Colors.light.divider,
         marginVertical: 4,
     },
-    // Section
     section: { marginBottom: 32 },
     sectionTitle: {
         fontSize: 13,
         fontWeight: "600",
-        color: Colors.light.inkFaint,
         textTransform: "uppercase",
         letterSpacing: 1,
         marginBottom: 16,
     },
-    // Plans
     planRow: {
         flexDirection: "row",
         alignItems: "center",
         paddingVertical: 16,
         borderBottomWidth: 0.5,
-        borderBottomColor: Colors.light.divider,
     },
-    planRowPressed: { backgroundColor: Colors.light.surfacePressed, marginHorizontal: -24, paddingHorizontal: 24 },
     planInfo: { flex: 1, marginRight: 16 },
-    planTitle: { fontSize: 16, fontWeight: "500", color: Colors.light.ink, marginBottom: 8 },
+    planTitle: { fontSize: 16, fontWeight: "500", marginBottom: 8 },
     planProgressBar: {
         height: 4,
-        backgroundColor: Colors.light.divider,
         borderRadius: 2,
         overflow: "hidden",
     },
     planProgressFill: {
         height: "100%",
-        backgroundColor: Colors.light.sage,
         borderRadius: 2,
     },
     planPercent: {
         fontSize: 14,
         fontWeight: "600",
-        color: Colors.light.sage,
         marginRight: 8,
         minWidth: 36,
         textAlign: "right",
     },
-    // Activity
     activityRow: {
         flexDirection: "row",
         alignItems: "center",
         paddingVertical: 12,
         borderBottomWidth: 0.5,
-        borderBottomColor: Colors.light.divider,
     },
     activityRowLast: { borderBottomWidth: 0 },
     activityDot: {
         width: 6,
         height: 6,
         borderRadius: 3,
-        backgroundColor: Colors.light.rust,
         marginRight: 14,
     },
     activityText: {
         flex: 1,
         fontSize: 15,
-        color: Colors.light.ink,
     },
     activityTime: {
         fontSize: 13,
-        color: Colors.light.inkFaint,
         marginLeft: 12,
     },
-    // Empty
     empty: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
     emptyIcon: {
         width: 80,
         height: 80,
         borderRadius: 24,
-        backgroundColor: Colors.light.backgroundDeep,
         alignItems: "center",
         justifyContent: "center",
         marginBottom: 24,
     },
-    emptyTitle: { fontSize: 22, fontWeight: "600", color: Colors.light.ink, marginBottom: 8 },
-    emptyBody: { fontSize: 16, color: Colors.light.inkMuted, textAlign: "center", lineHeight: 24, marginBottom: 28 },
+    emptyTitle: { fontSize: 22, fontWeight: "600", marginBottom: 8 },
+    emptyBody: { fontSize: 16, textAlign: "center", lineHeight: 24, marginBottom: 28 },
     emptyBtn: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: Colors.light.rust,
         height: 52,
         paddingHorizontal: 24,
         borderRadius: 14,

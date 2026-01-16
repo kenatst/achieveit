@@ -80,10 +80,36 @@ Respond as the achievement coach. Be helpful, specific, and motivating.`;
     }
 }
 
-// Quick responses for common scenarios
-export const COACH_STARTERS = [
-    "What's your #1 priority today?",
-    "I'm feeling stuck on my goal",
-    "How do I stay motivated?",
-    "Help me break this down",
-];
+// Translated starters by locale
+export const COACH_STARTERS: Record<string, string[]> = {
+    en: [
+        "What's your #1 priority today?",
+        "I'm feeling stuck on my goal",
+        "How do I stay motivated?",
+        "Help me break this down",
+    ],
+    fr: [
+        "Quelle est ta priorité n°1 aujourd'hui ?",
+        "Je me sens bloqué sur mon objectif",
+        "Comment rester motivé ?",
+        "Aide-moi à décomposer ça",
+    ],
+    es: [
+        "¿Cuál es tu prioridad #1 hoy?",
+        "Me siento atascado con mi objetivo",
+        "¿Cómo mantengo la motivación?",
+        "Ayúdame a desglosar esto",
+    ],
+    de: [
+        "Was ist heute deine #1 Priorität?",
+        "Ich fühle mich bei meinem Ziel blockiert",
+        "Wie bleibe ich motiviert?",
+        "Hilf mir, das aufzuteilen",
+    ],
+    it: [
+        "Qual è la tua priorità #1 oggi?",
+        "Mi sento bloccato sul mio obiettivo",
+        "Come resto motivato?",
+        "Aiutami a scomporre questo",
+    ],
+};

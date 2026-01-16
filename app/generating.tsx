@@ -1,28 +1,31 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { View, Text, StyleSheet, Animated, Easing } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Check, AlertCircle } from "lucide-react-native";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { usePlans } from "@/contexts/PlansContext";
 import { QuestionnaireAnswer } from "@/types/plan";
-
-const stages = [
-  "Understanding your goal",
-  "Mapping the journey",
-  "Building weekly plans",
-  "Setting up routines",
-  "Finishing touches",
-];
 
 export default function GeneratingScreen() {
   const { goal, answers } = useLocalSearchParams<{ goal: string; answers: string }>();
   const router = useRouter();
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const { generatePlan, generationError } = usePlans();
   const [stage, setStage] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+
+  // Translated stages
+  const stages = useMemo(() => [
+    t("generating.step1"),
+    t("generating.step2"),
+    t("generating.step3"),
+    t("generating.step4"),
+    t("generating.step5"),
+  ], [t]);
 
   const spinAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -43,7 +46,7 @@ export default function GeneratingScreen() {
       setStage(prev => (prev < stages.length - 1 ? prev + 1 : prev));
     }, 1800);
     return () => clearInterval(timer);
-  }, []);
+  }, [stages.length]);
 
   useEffect(() => {
     Animated.timing(progressAnim, {
@@ -52,7 +55,7 @@ export default function GeneratingScreen() {
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
-  }, [stage]);
+  }, [stage, stages.length]);
 
   useEffect(() => {
     const run = async () => {
@@ -62,7 +65,7 @@ export default function GeneratingScreen() {
         setDone(true);
         setTimeout(() => router.replace(`/plan/${plan.id}` as any), 1200);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+        setError(e instanceof Error ? e.message : t("common.error"));
       }
     };
     run();
@@ -86,9 +89,9 @@ export default function GeneratingScreen() {
             <View style={[styles.errorIcon, { backgroundColor: colors.rustSoft }]}>
               <AlertCircle color={colors.negative} size={36} />
             </View>
-            <Text style={[styles.errorTitle, { color: colors.ink }]}>Something went wrong</Text>
+            <Text style={[styles.errorTitle, { color: colors.ink }]}>{t("common.error")}</Text>
             <Text style={[styles.errorBody, { color: colors.inkMedium }]}>{error || generationError?.message}</Text>
-            <Text style={[styles.errorLink, { color: colors.rust }]} onPress={() => router.back()}>Go back</Text>
+            <Text style={[styles.errorLink, { color: colors.rust }]} onPress={() => router.back()}>{t("common.back")}</Text>
           </View>
         </SafeAreaView>
       </View>
@@ -96,6 +99,7 @@ export default function GeneratingScreen() {
   }
 
   if (done) {
+    const readyText = t("generating.ready") || "Your roadmap is ready";
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <SafeAreaView style={styles.safeArea}>
@@ -103,7 +107,7 @@ export default function GeneratingScreen() {
             <View style={[styles.successIcon, { backgroundColor: colors.sage }]}>
               <Check color="#FFFFFF" size={32} strokeWidth={3} />
             </View>
-            <Text style={[styles.successTitle, { color: colors.ink }]}>Your roadmap is ready</Text>
+            <Text style={[styles.successTitle, { color: colors.ink }]}>{readyText}</Text>
           </View>
         </SafeAreaView>
       </View>
@@ -120,7 +124,7 @@ export default function GeneratingScreen() {
           </Animated.View>
 
           {/* Title */}
-          <Text style={[styles.title, { color: colors.ink }]}>Building your roadmap</Text>
+          <Text style={[styles.title, { color: colors.ink }]}>{t("generating.title")}</Text>
           <Text style={[styles.goalQuote, { color: colors.inkMedium }]}>"{goal}"</Text>
 
           {/* Progress */}
@@ -162,7 +166,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
-  // Spinner
   spinner: { width: 56, height: 56, marginBottom: 32 },
   spinnerArc: {
     width: 56,
@@ -170,7 +173,6 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     borderWidth: 3,
   },
-  // Content
   title: {
     fontSize: 26,
     fontWeight: "700",
@@ -185,7 +187,6 @@ const styles = StyleSheet.create({
     marginBottom: 40,
     lineHeight: 24,
   },
-  // Progress
   progressSection: { width: "100%" },
   progressTrack: {
     height: 4,
@@ -216,7 +217,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "400",
   },
-  // Success
   successIcon: {
     width: 72,
     height: 72,
@@ -229,7 +229,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "600",
   },
-  // Error
   errorIcon: {
     width: 72,
     height: 72,

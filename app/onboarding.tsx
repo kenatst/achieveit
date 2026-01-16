@@ -4,7 +4,6 @@ import {
     Text,
     StyleSheet,
     Pressable,
-    Dimensions,
     StatusBar,
     Image,
 } from "react-native";
@@ -14,41 +13,43 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ArrowRight } from "lucide-react-native";
 import { MotiView, MotiText, AnimatePresence } from "moti";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import Typography from "@/constants/typography";
 
 const ONBOARDING_KEY = "has_completed_onboarding_v1";
 
-const slides = [
-    {
-        id: 1,
-        line1: "Ambition",
-        line2: "is merely",
-        line3: "a suggestion.",
-        body: "Until you write it down. Until you break it. Until you turn the impossible into a Tuesday morning routine.",
-        action: "Begin",
-    },
-    {
-        id: 2,
-        line1: "Chaos",
-        line2: "is the",
-        line3: "enemy.",
-        body: "We structure your vision into a relentless roadmap. Days, weeks, months. Every step calculated. Every win inevitable.",
-        action: "Structure",
-    },
-    {
-        id: 3,
-        line1: "Become",
-        line2: "who you",
-        line3: "must be.",
-        body: "This isn't a to-do list. It's an architectural blueprint for your future self. The time to build is now.",
-        action: "Execute",
-    },
-];
-
 export default function OnboardingScreen() {
     const { colors, isDark } = useTheme();
+    const { t } = useLanguage();
     const [current, setCurrent] = useState(0);
     const router = useRouter();
+
+    const slides = [
+        {
+            id: 1,
+            line1: t("onboarding.slide1_line1"),
+            line2: t("onboarding.slide1_line2"),
+            line3: t("onboarding.slide1_line3"),
+            body: t("onboarding.slide1_body"),
+            action: t("onboarding.slide1_action"),
+        },
+        {
+            id: 2,
+            line1: t("onboarding.slide2_line1"),
+            line2: t("onboarding.slide2_line2"),
+            line3: t("onboarding.slide2_line3"),
+            body: t("onboarding.slide2_body"),
+            action: t("onboarding.slide2_action"),
+        },
+        {
+            id: 3,
+            line1: t("onboarding.slide3_line1"),
+            line2: t("onboarding.slide3_line2"),
+            line3: t("onboarding.slide3_line3"),
+            body: t("onboarding.slide3_body"),
+            action: t("onboarding.slide3_action"),
+        },
+    ];
 
     const nextStep = async () => {
         if (current < slides.length - 1) {
@@ -189,6 +190,11 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: "600",
     },
+    logoTop: {
+        width: 40,
+        height: 40,
+        marginRight: 12,
+    },
     content: {
         flex: 1,
         paddingHorizontal: 24,
@@ -240,10 +246,5 @@ const styles = StyleSheet.create({
     buttonText: {
         ...Typography.sans.label,
         fontSize: 16,
-    },
-    logoTop: {
-        width: 40,
-        height: 40,
-        marginRight: 12,
     },
 });

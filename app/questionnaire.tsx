@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { X, ArrowRight, ArrowLeft, Check } from "lucide-react-native";
 import { useTheme } from "@/contexts/ThemeContext";
-import { questions } from "@/constants/questions";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { getQuestions } from "@/constants/questions";
 import { QuestionnaireAnswer } from "@/types/plan";
 
 type PartialAnswers = Partial<QuestionnaireAnswer>;
@@ -23,9 +24,13 @@ export default function QuestionnaireScreen() {
   const { goal } = useLocalSearchParams<{ goal: string }>();
   const router = useRouter();
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<PartialAnswers>({ obstacles: [] });
   const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  // Get translated questions
+  const questions = useMemo(() => getQuestions(t), [t]);
 
   const question = questions[step];
   const progress = ((step + 1) / questions.length) * 100;
@@ -89,6 +94,13 @@ export default function QuestionnaireScreen() {
     return answers[question.id as keyof PartialAnswers] === value;
   };
 
+  // Translated labels
+  const goalLabel = t("questionnaire.goalLabel") || "Your goal";
+  const selectAllHint = t("questionnaire.selectAll") || "Select all that apply";
+  const writePlaceholder = t("questionnaire.q5_placeholder");
+  const nextLabel = t("common.next");
+  const generateLabel = t("generating.title") || "Generate";
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <SafeAreaView style={styles.safeArea}>
@@ -117,7 +129,7 @@ export default function QuestionnaireScreen() {
             <Animated.View style={[styles.questionBlock, { opacity: fadeAnim }]}>
               {/* Goal reminder */}
               <View style={[styles.goalReminder, { borderBottomColor: colors.divider }]}>
-                <Text style={[styles.goalLabel, { color: colors.inkFaint }]}>Your goal</Text>
+                <Text style={[styles.goalLabel, { color: colors.inkFaint }]}>{goalLabel}</Text>
                 <Text style={[styles.goalText, { color: colors.ink }]} numberOfLines={2}>{goal}</Text>
               </View>
 
@@ -128,7 +140,7 @@ export default function QuestionnaireScreen() {
                 <View style={[styles.textBox, { backgroundColor: colors.surface, borderColor: colors.divider }]}>
                   <TextInput
                     style={[styles.textInput, { color: colors.ink }]}
-                    placeholder="Write your answer..."
+                    placeholder={writePlaceholder}
                     placeholderTextColor={colors.inkFaint}
                     value={(answers.motivation as string) || ""}
                     onChangeText={handleText}
@@ -174,7 +186,7 @@ export default function QuestionnaireScreen() {
               )}
 
               {question.type === "multi" && (
-                <Text style={[styles.hint, { color: colors.inkMedium }]}>Select all that apply</Text>
+                <Text style={[styles.hint, { color: colors.inkMedium }]}>{selectAllHint}</Text>
               )}
             </Animated.View>
           </ScrollView>
@@ -200,7 +212,7 @@ export default function QuestionnaireScreen() {
                 styles.nextBtnText,
                 !canProceed() && { color: colors.inkFaint },
               ]}>
-                {step === questions.length - 1 ? "Generate" : "Next"}
+                {step === questions.length - 1 ? generateLabel : nextLabel}
               </Text>
               <ArrowRight
                 color={canProceed() ? "#FFFFFF" : colors.inkFaint}

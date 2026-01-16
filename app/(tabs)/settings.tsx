@@ -9,8 +9,9 @@ import {
     Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Moon, Sun, Bell, Clock } from "lucide-react-native";
+import { Moon, Sun, Bell, Clock, Globe } from "lucide-react-native";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useLanguage, SUPPORTED_LANGUAGES, SupportedLocale } from "@/contexts/LanguageContext";
 import {
     ReminderSettings,
     loadReminderSettings,
@@ -22,6 +23,7 @@ type ThemeOption = "light" | "dark";
 
 export default function SettingsScreen() {
     const { colors, theme, isDark, setTheme, shadows } = useTheme();
+    const { locale, setLocale, t } = useLanguage();
     const [reminders, setReminders] = useState<ReminderSettings>({
         enabled: true,
         morningTime: "08:00",
@@ -42,8 +44,8 @@ export default function SettingsScreen() {
             const hasPermission = await requestNotificationPermissions();
             if (!hasPermission) {
                 Alert.alert(
-                    "Notifications Disabled",
-                    "Please enable notifications in your device settings to receive reminders."
+                    t("settings.notificationsDisabled"),
+                    t("settings.notificationsMessage")
                 );
                 return;
             }
@@ -53,8 +55,8 @@ export default function SettingsScreen() {
     };
 
     const themeOptions: { value: ThemeOption; label: string; icon: React.ReactNode }[] = [
-        { value: "light", label: "Light", icon: <Sun color={colors.inkMedium} size={20} /> },
-        { value: "dark", label: "Dark", icon: <Moon color={colors.inkMedium} size={20} /> },
+        { value: "light", label: t("settings.light"), icon: <Sun color={colors.inkMedium} size={20} /> },
+        { value: "dark", label: t("settings.dark"), icon: <Moon color={colors.inkMedium} size={20} /> },
     ];
 
     return (
@@ -63,13 +65,57 @@ export default function SettingsScreen() {
                 <ScrollView contentContainerStyle={styles.scroll}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <Text style={[styles.title, { color: colors.ink }]}>Settings</Text>
+                        <Text style={[styles.title, { color: colors.ink }]}>{t("settings.title")}</Text>
+                    </View>
+
+                    {/* Language Section */}
+                    <View style={styles.section}>
+                        <Text style={[styles.sectionTitle, { color: colors.inkFaint }]}>
+                            {t("settings.language")}
+                        </Text>
+                        <View style={[styles.card, { backgroundColor: colors.surface }, shadows.card]}>
+                            {SUPPORTED_LANGUAGES.map((lang, index) => {
+                                const isActive = locale === lang.code;
+                                return (
+                                    <Pressable
+                                        key={lang.code}
+                                        style={[
+                                            styles.optionRow,
+                                            index < SUPPORTED_LANGUAGES.length - 1 && {
+                                                borderBottomWidth: 0.5,
+                                                borderBottomColor: colors.divider,
+                                            },
+                                        ]}
+                                        onPress={() => setLocale(lang.code)}
+                                    >
+                                        <Text style={styles.flag}>{lang.flag}</Text>
+                                        <View style={styles.langInfo}>
+                                            <Text style={[styles.optionLabel, { color: colors.ink }]}>
+                                                {lang.nativeName}
+                                            </Text>
+                                            <Text style={[styles.langSubtitle, { color: colors.inkFaint }]}>
+                                                {lang.name}
+                                            </Text>
+                                        </View>
+                                        <View
+                                            style={[
+                                                styles.radio,
+                                                { borderColor: colors.dividerStrong },
+                                                isActive && { borderColor: colors.rust, backgroundColor: colors.rust },
+                                            ]}
+                                        >
+                                            {isActive && <View style={styles.radioInner} />}
+                                        </View>
+                                    </Pressable>
+                                );
+                            })}
+                        </View>
                     </View>
 
                     {/* Appearance Section */}
                     <View style={styles.section}>
                         <Text style={[styles.sectionTitle, { color: colors.inkFaint }]}>
-                            APPEARANCE
+                            {t("settings.appearance")}
                         </Text>
                         <View style={[styles.card, { backgroundColor: colors.surface }, shadows.card]}>
                             {themeOptions.map((option, index) => {
@@ -108,14 +154,14 @@ export default function SettingsScreen() {
                     {/* Reminders Section */}
                     <View style={styles.section}>
                         <Text style={[styles.sectionTitle, { color: colors.inkFaint }]}>
-                            SMART REMINDERS
+                            {t("settings.reminders")}
                         </Text>
                         <View style={[styles.card, { backgroundColor: colors.surface }, shadows.card]}>
                             {/* Master Toggle */}
                             <View style={[styles.switchRow, { borderBottomWidth: 0.5, borderBottomColor: colors.divider }]}>
                                 <Bell color={colors.rust} size={20} />
                                 <Text style={[styles.optionLabel, { color: colors.ink }]}>
-                                    Enable Reminders
+                                    {t("settings.enableReminders")}
                                 </Text>
                                 <Switch
                                     value={reminders.enabled}
@@ -130,7 +176,7 @@ export default function SettingsScreen() {
                                 <Clock color={colors.inkMedium} size={20} />
                                 <View style={styles.reminderInfo}>
                                     <Text style={[styles.optionLabel, { color: colors.ink }]}>
-                                        Morning Check-in
+                                        {t("settings.morningCheckin")}
                                     </Text>
                                     <Text style={[styles.reminderTime, { color: colors.inkFaint }]}>
                                         {reminders.morningTime}
@@ -150,7 +196,7 @@ export default function SettingsScreen() {
                                 <Clock color={colors.inkMedium} size={20} />
                                 <View style={styles.reminderInfo}>
                                     <Text style={[styles.optionLabel, { color: colors.ink }]}>
-                                        Evening Reflection
+                                        {t("settings.eveningReflection")}
                                     </Text>
                                     <Text style={[styles.reminderTime, { color: colors.inkFaint }]}>
                                         {reminders.eveningTime}
@@ -227,6 +273,16 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 16,
         fontWeight: "500",
+    },
+    flag: {
+        fontSize: 24,
+    },
+    langInfo: {
+        flex: 1,
+    },
+    langSubtitle: {
+        fontSize: 12,
+        marginTop: 2,
     },
     reminderInfo: {
         flex: 1,

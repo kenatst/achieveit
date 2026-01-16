@@ -1,12 +1,28 @@
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { Plan } from "@/types/plan";
+import { i18n } from "@/contexts/LanguageContext";
+
+// Get translations for PDF
+const getTranslations = () => ({
+  phases: i18n.t("pdf.phases"),
+  weeklyPlans: i18n.t("pdf.weeklyPlans"),
+  dailyRoutines: i18n.t("pdf.dailyRoutines"),
+  potentialObstacles: i18n.t("pdf.potentialObstacles"),
+  checkpoints: i18n.t("pdf.checkpoints"),
+  successMetrics: i18n.t("pdf.successMetrics"),
+  generatedBy: i18n.t("pdf.generatedBy"),
+  day30: i18n.locale === "fr" ? "Jour 30" : i18n.locale === "es" ? "Día 30" : i18n.locale === "de" ? "Tag 30" : i18n.locale === "it" ? "Giorno 30" : "Day 30",
+  day60: i18n.locale === "fr" ? "Jour 60" : i18n.locale === "es" ? "Día 60" : i18n.locale === "de" ? "Tag 60" : i18n.locale === "it" ? "Giorno 60" : "Day 60",
+  day90: i18n.locale === "fr" ? "Jour 90" : i18n.locale === "es" ? "Día 90" : i18n.locale === "de" ? "Tag 90" : i18n.locale === "it" ? "Giorno 90" : "Day 90",
+});
 
 // Generate beautiful HTML for PDF export
 function generatePlanHTML(plan: Plan): string {
-    const { content, progress } = plan;
+  const { content, progress } = plan;
+  const t = getTranslations();
 
-    const styles = `
+  const styles = `
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body {
@@ -164,16 +180,18 @@ function generatePlanHTML(plan: Plan): string {
     </style>
   `;
 
-    const phasesHTML = content.phases.map((phase) => `
+  const weekLabel = i18n.locale === "fr" ? "Semaine" : i18n.locale === "es" ? "Semana" : i18n.locale === "de" ? "Woche" : i18n.locale === "it" ? "Settimana" : "Week";
+
+  const phasesHTML = content.phases.map((phase) => `
     <div class="phase">
       <div class="phase-title">${phase.name} (${phase.duration})</div>
       <div class="phase-desc">${phase.objective}</div>
     </div>
   `).join("");
 
-    const weeklyPlansHTML = content.weeklyPlans.map((week, wi) => `
+  const weeklyPlansHTML = content.weeklyPlans.map((week, wi) => `
     <div class="week">
-      <div class="week-header">Week ${week.week}: ${week.focus}</div>
+      <div class="week-header">${weekLabel} ${week.week}: ${week.focus}</div>
       ${week.tasks.map((task, ti) => `
         <div class="task">
           <div class="checkbox ${progress.weeklyTasks[wi]?.[ti] ? 'done' : ''}"></div>
@@ -183,41 +201,39 @@ function generatePlanHTML(plan: Plan): string {
     </div>
   `).join("");
 
-    const routinesHTML = content.routines.map((routine) => `
+  const routinesHTML = content.routines.map((routine) => `
     <div class="routine">
       <strong>${routine.name}</strong> – ${routine.frequency} • ${routine.duration}
     </div>
   `).join("");
 
-    const obstaclesHTML = content.obstacles.map((obs) => `
+  const obstaclesHTML = content.obstacles.map((obs) => `
     <div class="obstacle">
       <div class="obstacle-title">⚠️ ${obs.challenge}</div>
       <div class="obstacle-solution">💡 ${obs.solution}</div>
     </div>
   `).join("");
 
-    // Checkpoints are structured as day30/day60/day90 arrays
-    const checkpointsHTML = `
+  const checkpointsHTML = `
     <div class="checkpoint">
-      <div class="checkpoint-day">Day 30</div>
+      <div class="checkpoint-day">${t.day30}</div>
       ${content.checkpoints.day30.map(item => `<div>• ${item}</div>`).join("")}
     </div>
     <div class="checkpoint">
-      <div class="checkpoint-day">Day 60</div>
+      <div class="checkpoint-day">${t.day60}</div>
       ${content.checkpoints.day60.map(item => `<div>• ${item}</div>`).join("")}
     </div>
     <div class="checkpoint">
-      <div class="checkpoint-day">Day 90</div>
+      <div class="checkpoint-day">${t.day90}</div>
       ${content.checkpoints.day90.map(item => `<div>• ${item}</div>`).join("")}
     </div>
   `;
 
-    // Success metrics are strings
-    const metricsHTML = content.successMetrics.map((metric) => `
+  const metricsHTML = content.successMetrics.map((metric) => `
     <div class="metric">✓ ${metric}</div>
   `).join("");
 
-    return `
+  return `
     <!DOCTYPE html>
     <html>
     <head>
@@ -236,37 +252,37 @@ function generatePlanHTML(plan: Plan): string {
       <div class="quote">"${content.motivationalQuote}"</div>
 
       <div class="section">
-        <h2 class="section-title">📋 Phases</h2>
+        <h2 class="section-title">${t.phases}</h2>
         ${phasesHTML}
       </div>
 
       <div class="section">
-        <h2 class="section-title">📅 Weekly Plans</h2>
+        <h2 class="section-title">${t.weeklyPlans}</h2>
         ${weeklyPlansHTML}
       </div>
 
       <div class="section">
-        <h2 class="section-title">🔄 Daily Routines</h2>
+        <h2 class="section-title">${t.dailyRoutines}</h2>
         ${routinesHTML}
       </div>
 
       <div class="section">
-        <h2 class="section-title">⚠️ Potential Obstacles</h2>
+        <h2 class="section-title">${t.potentialObstacles}</h2>
         ${obstaclesHTML}
       </div>
 
       <div class="section">
-        <h2 class="section-title">🎯 Checkpoints</h2>
+        <h2 class="section-title">${t.checkpoints}</h2>
         ${checkpointsHTML}
       </div>
 
       <div class="section">
-        <h2 class="section-title">📊 Success Metrics</h2>
+        <h2 class="section-title">${t.successMetrics}</h2>
         ${metricsHTML}
       </div>
 
       <div class="footer">
-        Generated by AchieveIt • ${new Date().toLocaleDateString()}
+        ${t.generatedBy} • ${new Date().toLocaleDateString()}
       </div>
     </body>
     </html>
@@ -275,30 +291,30 @@ function generatePlanHTML(plan: Plan): string {
 
 // Export plan as PDF
 export async function exportPlanToPDF(plan: Plan): Promise<boolean> {
-    try {
-        const html = generatePlanHTML(plan);
+  try {
+    const html = generatePlanHTML(plan);
 
-        const { uri } = await Print.printToFileAsync({
-            html,
-            margins: {
-                top: 20,
-                bottom: 20,
-                left: 20,
-                right: 20,
-            },
-        });
+    const { uri } = await Print.printToFileAsync({
+      html,
+      margins: {
+        top: 20,
+        bottom: 20,
+        left: 20,
+        right: 20,
+      },
+    });
 
-        if (await Sharing.isAvailableAsync()) {
-            await Sharing.shareAsync(uri, {
-                mimeType: "application/pdf",
-                dialogTitle: `${plan.content.title} - AchieveIt Plan`,
-                UTI: "com.adobe.pdf",
-            });
-            return true;
-        }
-        return false;
-    } catch (error) {
-        console.error("PDF export error:", error);
-        return false;
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(uri, {
+        mimeType: "application/pdf",
+        dialogTitle: `${plan.content.title} - AchieveIt Plan`,
+        UTI: "com.adobe.pdf",
+      });
+      return true;
     }
+    return false;
+  } catch (error) {
+    console.error("PDF export error:", error);
+    return false;
+  }
 }

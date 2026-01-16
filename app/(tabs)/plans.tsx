@@ -10,21 +10,23 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Plus, ChevronRight, FolderOpen } from "lucide-react-native";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { usePlans } from "@/contexts/PlansContext";
 
 export default function PlansScreen() {
   const { plans } = usePlans();
   const { colors, shadows } = useTheme();
+  const { t, locale } = useLanguage();
   const router = useRouter();
 
   const timeAgo = (date: string) => {
     const d = new Date(date);
     const now = new Date();
     const days = Math.floor((now.getTime() - d.getTime()) / 86400000);
-    if (days === 0) return "Today";
-    if (days === 1) return "Yesterday";
-    if (days < 7) return `${days}d ago`;
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    if (days === 0) return t("common.today");
+    if (days === 1) return locale === "fr" ? "Hier" : locale === "es" ? "Ayer" : locale === "de" ? "Gestern" : locale === "it" ? "Ieri" : "Yesterday";
+    if (days < 7) return `${days}d`;
+    return d.toLocaleDateString(locale, { month: "short", day: "numeric" });
   };
 
   if (plans.length === 0) {
@@ -32,23 +34,23 @@ export default function PlansScreen() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <SafeAreaView style={styles.safeArea} edges={["top"]}>
           <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.ink }]}>Plans</Text>
+            <Text style={[styles.title, { color: colors.ink }]}>{t("plans.title")}</Text>
           </View>
 
           <View style={styles.empty}>
             <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundDeep }]}>
               <FolderOpen color={colors.inkFaint} size={36} strokeWidth={1.5} />
             </View>
-            <Text style={[styles.emptyTitle, { color: colors.ink }]}>No plans yet</Text>
+            <Text style={[styles.emptyTitle, { color: colors.ink }]}>{t("plans.noPlanTitle")}</Text>
             <Text style={[styles.emptyBody, { color: colors.inkMedium }]}>
-              Your roadmaps will appear here once you create one
+              {t("plans.noPlanSubtitle")}
             </Text>
             <Pressable
               style={[styles.emptyBtn, { backgroundColor: colors.rust }]}
               onPress={() => router.push("/(tabs)")}
             >
               <Plus color="#FFFFFF" size={18} strokeWidth={2.5} />
-              <Text style={styles.emptyBtnText}>Create your first plan</Text>
+              <Text style={styles.emptyBtnText}>{t("plans.createNew")}</Text>
             </Pressable>
           </View>
         </SafeAreaView>
@@ -60,7 +62,7 @@ export default function PlansScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.ink }]}>Plans</Text>
+          <Text style={[styles.title, { color: colors.ink }]}>{t("plans.title")}</Text>
           <Text style={[styles.count, { color: colors.inkMedium }]}>{plans.length} total</Text>
         </View>
 
@@ -119,7 +121,7 @@ export default function PlansScreen() {
             onPress={() => router.push("/(tabs)")}
           >
             <Plus color={colors.rust} size={20} />
-            <Text style={[styles.addText, { color: colors.rust }]}>Create new plan</Text>
+            <Text style={[styles.addText, { color: colors.rust }]}>{t("plans.createNew")}</Text>
           </Pressable>
 
           <View style={{ height: 32 }} />
@@ -147,7 +149,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   scrollContent: { paddingHorizontal: 24 },
-  // Card
   card: {
     flexDirection: "row",
     alignItems: "center",
@@ -202,7 +203,6 @@ const styles = StyleSheet.create({
     minWidth: 36,
     textAlign: "right",
   },
-  // Add card
   addCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -217,7 +217,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "500",
   },
-  // Empty
   empty: {
     flex: 1,
     alignItems: "center",
