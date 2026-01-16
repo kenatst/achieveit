@@ -1,311 +1,316 @@
-import React from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
+import React, { useState, useRef, useEffect } from "react";
+import { View, Text, StyleSheet, Dimensions, Animated, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import {
-  ArrowLeft,
-  Map,
-  CheckSquare,
-  BarChart3,
-  Settings2,
-  MessageCircle,
-  Sparkles,
-} from "lucide-react-native";
+import { ArrowLeft, MessageCircle, MoreHorizontal } from "lucide-react-native";
 import { MotiView } from "moti";
+import { BlurView } from "expo-blur";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { usePlans } from "@/contexts/PlansContext";
-import { triggerLight } from "@/utils/haptics";
+import Typography from "@/constants/typography";
+import { triggerSelection } from "@/utils/haptics";
 
-interface QuickActionProps {
-  icon: React.ReactNode;
-  label: string;
-  sublabel: string;
-  color: string;
-  bgColor: string;
-  onPress: () => void;
-  delay: number;
-}
+// Components
+import TabControl from "@/components/plan/TabControl";
+import FocusView from "@/components/plan/FocusView";
+import RoadmapView from "@/components/plan/RoadmapView";
+import InsightView from "@/components/plan/InsightView";
 
-function QuickAction({ icon, label, sublabel, color, bgColor, onPress, delay }: QuickActionProps) {
-  const { colors, shadows } = useTheme();
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const HEADER_HEIGHT = 380; // Large, immersive header
 
-  return (
-    <MotiView
-      from={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: "timing", duration: 400, delay }}
-    >
-      <Pressable
-        style={[styles.actionCard, { backgroundColor: colors.surface }, shadows.card]}
-        onPress={() => {
-          triggerLight();
-          onPress();
-        }}
-      >
-        <View style={[styles.actionIcon, { backgroundColor: bgColor }]}>
-          {icon}
-        </View>
-        <Text style={[styles.actionLabel, { color: colors.ink }]}>{label}</Text>
-        <Text style={[styles.actionSublabel, { color: colors.inkMuted }]}>{sublabel}</Text>
-      </Pressable>
-    </MotiView>
-  );
-}
-
-export default function PlanHubScreen() {
+export default function PlanDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { colors, shadows } = useTheme();
+  const { colors, isDark } = useTheme();
   const { t } = useLanguage();
   const { plans } = usePlans();
+
+  const [activeTab, setActiveTab] = useState<"FOCUS" | "ROADMAP" | "INSIGHT">("FOCUS");
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   const plan = plans.find((p) => p.id === id);
 
   if (!plan) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.notFound}>
-            <Text style={[styles.notFoundTitle, { color: colors.ink }]}>
-              {t("planDetail.planNotFound")}
-            </Text>
-            <Pressable onPress={() => router.back()}>
-              <Text style={[styles.notFoundLink, { color: colors.rust }]}>
-                {t("planDetail.goBack")}
-              </Text>
-            </Pressable>
-          </View>
-        </SafeAreaView>
-      </View>
-    );
+    return <View style={[styles.container, { backgroundColor: colors.background }]} />;
   }
 
   const progress = plan.progress.overallProgress;
 
-  // Calculate stats
-  const totalRoutines = plan.content.routines.length;
-  const todayStr = new Date().toISOString().split("T")[0];
-  const completedToday = plan.content.routines.filter((_, ri) =>
-    plan.progress.routineHistory[ri]?.includes(todayStr)
-  ).length;
-
-  const currentWeekIndex = plan.content.weeklyPlans.findIndex((week, wi) => {
-    const tasksDone = week.tasks.filter((_, ti) =>
-      plan.progress.weeklyTasks[wi]?.[ti]
-    ).length;
-    return tasksDone < week.tasks.length;
+  // Parallax Interpolations
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [-HEADER_HEIGHT, 0, HEADER_HEIGHT],
+    outputRange: [-HEADER_HEIGHT / 2, 0, HEADER_HEIGHT * 0.75],
+    extrapolate: "clamp",
   });
-  const currentWeek = currentWeekIndex !== -1 ? plan.content.weeklyPlans[currentWeekIndex] : null;
+
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_HEIGHT * 0.5],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+
+  const headerScale = scrollY.interpolate({
+    inputRange: [-HEADER_HEIGHT, 0],
+    outputRange: [2, 1],
+    extrapolateLeft: "extend",
+    extrapolateRight: "clamp",
+  });
+
+  // Sticky Tab Bar Opacity (Glass effect kicks in when scrolled up)
+  const tabOpacity = scrollY.interpolate({
+    inputRange: [HEADER_HEIGHT - 120, HEADER_HEIGHT - 60],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        {/* Header */}
-        <View style={[styles.header, { borderBottomColor: colors.divider }]}>
-          <Pressable style={styles.backBtn} onPress={() => router.back()}>
-            <ArrowLeft color={colors.ink} size={22} />
-          </Pressable>
-          <View style={styles.headerCenter}>
-            <Text style={[styles.headerTitle, { color: colors.ink }]} numberOfLines={1}>
-              {plan.content.title}
-            </Text>
+
+      {/* 1. Immersive Parallax Header (Behind Content) */}
+      <Animated.View
+        style={[
+          styles.hero,
+          {
+            height: HEADER_HEIGHT,
+            transform: [{ translateY: headerTranslateY }, { scale: headerScale }],
+            opacity: headerOpacity,
+          },
+        ]}
+      >
+        {/* Grainy Texture / Abstract Background */}
+        <View style={[styles.heroBackground, { backgroundColor: colors.surface }]} />
+        <View style={[styles.heroOverlay, { backgroundColor: colors.backgroundDeep + "80" }]} />
+
+        <SafeAreaView style={styles.heroContent}>
+          {/* Ring */}
+          <View style={[styles.ringContainer, { borderColor: colors.rust + "40" }]}>
+            <MotiView
+              from={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "timing", duration: 1000 }}
+              style={[
+                styles.ring,
+                {
+                  borderColor: colors.rust,
+                  // Simple visual hack for progress ring, ideally SVG
+                  borderRightColor: progress < 25 ? "transparent" : colors.rust,
+                  borderBottomColor: progress < 50 ? "transparent" : colors.rust,
+                  borderLeftColor: progress < 75 ? "transparent" : colors.rust,
+                }
+              ]}
+            >
+              <Text style={[styles.heroPercent, { color: colors.rust }]}>{progress}%</Text>
+            </MotiView>
           </View>
-          <View style={{ width: 44 }} />
+
+          {/* Title */}
+          <Text style={[styles.heroTitle, { color: colors.ink }]}>{plan.content.title}</Text>
+          <Text style={[styles.heroQuote, { color: colors.inkMedium }]}>
+            "{plan.content.motivationalQuote}"
+          </Text>
+        </SafeAreaView>
+      </Animated.View>
+
+      {/* 2. Scrollable Content (Executive Brief) */}
+      <Animated.ScrollView
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+        style={styles.scroll}
+        contentContainerStyle={{ paddingTop: HEADER_HEIGHT, paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Sticky Tab Container */}
+        <View style={[styles.tabContainer, { backgroundColor: colors.background }]}>
+          <TabControl
+            tabs={["FOCUS", "ROADMAP", "INSIGHT"]}
+            activeTab={activeTab}
+            onTabChange={(t) => setActiveTab(t as any)}
+          />
         </View>
 
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          {/* Progress Ring */}
+        {/* Content Area */}
+        <View style={styles.contentArea}>
           <MotiView
-            from={{ opacity: 0, translateY: -20 }}
+            key={activeTab}
+            from={{ opacity: 0, translateY: 10 }}
             animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: "timing", duration: 500 }}
-            style={styles.progressSection}
+            transition={{ type: "timing", duration: 300 }}
           >
-            <View style={[styles.progressRing, { borderColor: colors.rust }]}>
-              <View style={[styles.progressRingInner, { backgroundColor: colors.background }]}>
-                <Text style={[styles.progressPercent, { color: colors.rust }]}>{progress}</Text>
-                <Text style={[styles.progressLabel, { color: colors.inkMuted }]}>%</Text>
-              </View>
-            </View>
-            <Text style={[styles.progressTitle, { color: colors.ink }]}>
-              {progress < 25 ? "Just Getting Started" :
-                progress < 50 ? "Building Momentum" :
-                  progress < 75 ? "Halfway There" :
-                    progress < 100 ? "Almost Done" : "Complete!"}
-            </Text>
-            {currentWeek && (
-              <Text style={[styles.currentWeek, { color: colors.inkMedium }]}>
-                Week {currentWeek.week}: {currentWeek.focus}
-              </Text>
-            )}
+            {activeTab === "FOCUS" && <FocusView plan={plan} />}
+            {activeTab === "ROADMAP" && <RoadmapView plan={plan} />}
+            {activeTab === "INSIGHT" && <InsightView plan={plan} />}
           </MotiView>
+        </View>
 
-          {/* Quote */}
-          <MotiView
-            from={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 200 }}
-            style={[styles.quoteCard, { backgroundColor: colors.surface }, shadows.card]}
+      </Animated.ScrollView>
+
+      {/* 3. Sticky Header (Appears on Scroll) */}
+      <Animated.View
+        style={[
+          styles.stickyHeader,
+          { opacity: tabOpacity }
+        ]}
+      >
+        <BlurView intensity={isDark ? 50 : 80} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
+        <View style={[styles.stickyContent, { borderBottomColor: colors.divider }]}>
+          <Text style={[styles.stickyTitle, { color: colors.ink }]} numberOfLines={1}>
+            {plan.content.title}
+          </Text>
+          {/* Small Tab Indicators could go here */}
+        </View>
+      </Animated.View>
+
+      {/* 4. Navigation Icons (Fixed) */}
+      <SafeAreaView style={styles.navOverlay} pointerEvents="box-none">
+        <View style={styles.navRow}>
+          <Pressable
+            style={[styles.iconButton, { backgroundColor: colors.background + "80" }]}
+            onPress={() => router.back()}
           >
-            <Sparkles color={colors.rust} size={16} />
-            <Text style={[styles.quoteText, { color: colors.inkMedium }]}>
-              "{plan.content.motivationalQuote}"
-            </Text>
-          </MotiView>
-
-          {/* Quick Actions Grid */}
-          <View style={styles.actionsGrid}>
-            <QuickAction
-              icon={<Map color={colors.rust} size={22} />}
-              label={t("planDetail.roadmap")}
-              sublabel={`${plan.content.phases.length} phases`}
-              color={colors.rust}
-              bgColor={colors.rustSoft}
-              onPress={() => router.push(`/plan/${id}/roadmap` as any)}
-              delay={100}
-            />
-            <QuickAction
-              icon={<CheckSquare color={colors.sage} size={22} />}
-              label={t("planDetail.routines")}
-              sublabel={`${completedToday}/${totalRoutines} today`}
-              color={colors.sage}
-              bgColor={colors.sageSoft}
-              onPress={() => router.push(`/plan/${id}/tasks` as any)}
-              delay={150}
-            />
-            <QuickAction
-              icon={<BarChart3 color={colors.ink} size={22} />}
-              label={t("planDetail.successMetrics")}
-              sublabel={`${plan.content.successMetrics.length} metrics`}
-              color={colors.ink}
-              bgColor={colors.divider}
-              onPress={() => router.push(`/plan/${id}/analytics` as any)}
-              delay={200}
-            />
-            <QuickAction
-              icon={<Settings2 color={colors.inkMedium} size={22} />}
-              label="Actions"
-              sublabel="Export & more"
-              color={colors.inkMedium}
-              bgColor={colors.backgroundDeep}
-              onPress={() => router.push(`/plan/${id}/actions` as any)}
-              delay={250}
-            />
-          </View>
-
-          {/* AI Coach Button */}
-          <MotiView
-            from={{ opacity: 0, translateY: 20 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ delay: 400 }}
+            <ArrowLeft color={colors.ink} size={24} />
+          </Pressable>
+          <View style={{ flex: 1 }} />
+          <Pressable
+            style={[styles.iconButton, { backgroundColor: colors.rust, marginRight: 12 }]}
+            onPress={() => router.push({ pathname: "/coach" as any, params: { planId: plan.id } })}
           >
-            <Pressable
-              style={[styles.coachButton, { backgroundColor: colors.rust }]}
-              onPress={() => {
-                triggerLight();
-                router.push({ pathname: "/coach" as any, params: { planId: plan.id } });
-              }}
-            >
-              <MessageCircle color="#FFF" size={20} />
-              <Text style={styles.coachButtonText}>{t("planDetail.askCoach")}</Text>
-            </Pressable>
-          </MotiView>
-
-          <View style={{ height: 40 }} />
-        </ScrollView>
+            <MessageCircle color="#FFF" size={24} strokeWidth={2} />
+          </Pressable>
+          <Pressable
+            style={[styles.iconButton, { backgroundColor: colors.background + "80" }]}
+            onPress={() => router.push(`/plan/${id}/actions` as any)}
+          >
+            <MoreHorizontal color={colors.ink} size={24} />
+          </Pressable>
+        </View>
       </SafeAreaView>
+
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safeArea: { flex: 1 },
-  header: {
-    flexDirection: "row",
+  scroll: { flex: 1 },
+
+  // Hero
+  hero: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    justifyContent: "center",
     alignItems: "center",
+    zIndex: 0,
+  },
+  heroBackground: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  heroContent: {
+    alignItems: "center",
+    paddingHorizontal: 40,
+    paddingTop: 40, // Push down a bit
+  },
+  heroTitle: {
+    ...Typography.display.hero,
+    fontSize: 36, // Slightly smaller than huge
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  heroQuote: {
+    fontSize: 16,
+    fontStyle: "italic",
+    textAlign: "center",
+    opacity: 0.8,
+    lineHeight: 24,
+  },
+
+  // Ring
+  ringContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 1,
+    marginBottom: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ring: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    borderWidth: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroPercent: {
+    fontSize: 28,
+    fontWeight: "300",
+  },
+
+  // Content
+  tabContainer: {
+    paddingTop: 24,
+    paddingBottom: 24,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    marginTop: -32, // Overlap the hero slightly
+    minHeight: SCREEN_HEIGHT, // Ensure it fills screen
+  },
+  contentArea: {
+    paddingHorizontal: 0, // Full width for content views
+  },
+
+  // Nav
+  navOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+  navRow: {
+    flexDirection: "row",
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 0.5,
+    paddingTop: 12,
   },
-  backBtn: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerCenter: { flex: 1, alignItems: "center" },
-  headerTitle: { fontSize: 17, fontWeight: "600" },
-  scroll: { paddingHorizontal: 24, paddingTop: 32 },
-  // Progress
-  progressSection: { alignItems: "center", marginBottom: 32 },
-  progressRing: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    borderWidth: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
-  progressRingInner: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  progressPercent: { fontSize: 42, fontWeight: "200", letterSpacing: -2 },
-  progressLabel: { fontSize: 18, marginTop: -4 },
-  progressTitle: { fontSize: 20, fontWeight: "600", marginBottom: 6 },
-  currentWeek: { fontSize: 14, textAlign: "center" },
-  // Quote
-  quoteCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    padding: 16,
-    borderRadius: 14,
-    marginBottom: 28,
-    gap: 12,
-  },
-  quoteText: { flex: 1, fontSize: 14, fontStyle: "italic", lineHeight: 22 },
-  // Actions Grid
-  actionsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 14,
-    marginBottom: 24,
-  },
-  actionCard: {
-    width: "47%",
-    padding: 18,
-    borderRadius: 16,
-    alignItems: "center",
-  },
-  actionIcon: {
+  iconButton: {
     width: 48,
     height: 48,
-    borderRadius: 14,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    // Glassy look
+    backdropFilter: "blur(10px)",
   },
-  actionLabel: { fontSize: 15, fontWeight: "600", marginBottom: 4 },
-  actionSublabel: { fontSize: 12 },
-  // Coach Button
-  coachButton: {
+
+  // Sticky Header
+  stickyHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 100, // Roughly standard header + status bar
+    zIndex: 10,
+  },
+  stickyContent: {
+    flex: 1,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-end",
+    paddingBottom: 16,
+    paddingHorizontal: 60, // Space for back button
     justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 14,
-    gap: 10,
+    borderBottomWidth: 0.5,
   },
-  coachButtonText: { fontSize: 16, fontWeight: "600", color: "#FFF" },
-  // Not found
-  notFound: { flex: 1, alignItems: "center", justifyContent: "center" },
-  notFoundTitle: { fontSize: 18, fontWeight: "500", marginBottom: 12 },
-  notFoundLink: { fontSize: 16, fontWeight: "500" },
+  stickyTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+  },
 });
