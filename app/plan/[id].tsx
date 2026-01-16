@@ -1,73 +1,79 @@
-import React, { useState } from "react";
+import React from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import {
   ArrowLeft,
-  Target,
-  Calendar,
-  RefreshCw,
-  AlertTriangle,
-  TrendingUp,
-  Award,
+  Map,
+  CheckSquare,
   BarChart3,
-  CalendarPlus,
-  FileDown,
+  Settings2,
   MessageCircle,
+  Sparkles,
 } from "lucide-react-native";
+import { MotiView } from "moti";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { usePlans } from "@/contexts/PlansContext";
-import { exportPlanToCalendar } from "@/utils/calendarExport";
-import { exportPlanToPDF } from "@/utils/pdfExport";
+import { triggerLight } from "@/utils/haptics";
 
-// Components
-import SectionHeader from "@/components/plan/SectionHeader";
-import DiagnosisSection from "@/components/plan/DiagnosisSection";
-import PhaseSection from "@/components/plan/PhaseSection";
-import WeeklySection from "@/components/plan/WeeklySection";
-import RoutineSection from "@/components/plan/RoutineSection";
-import ObstacleSection from "@/components/plan/ObstacleSection";
-import CheckpointSection from "@/components/plan/CheckpointSection";
-import MetricsSection from "@/components/plan/MetricsSection";
+interface QuickActionProps {
+  icon: React.ReactNode;
+  label: string;
+  sublabel: string;
+  color: string;
+  bgColor: string;
+  onPress: () => void;
+  delay: number;
+}
 
-type SectionKey = "diagnosis" | "phases" | "weekly" | "routines" | "obstacles" | "checkpoints" | "metrics";
+function QuickAction({ icon, label, sublabel, color, bgColor, onPress, delay }: QuickActionProps) {
+  const { colors, shadows } = useTheme();
 
-const icons: Record<SectionKey, any> = {
-  diagnosis: Target,
-  phases: TrendingUp,
-  weekly: Calendar,
-  routines: RefreshCw,
-  obstacles: AlertTriangle,
-  checkpoints: Award,
-  metrics: BarChart3,
-};
+  return (
+    <MotiView
+      from={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: "timing", duration: 400, delay }}
+    >
+      <Pressable
+        style={[styles.actionCard, { backgroundColor: colors.surface }, shadows.card]}
+        onPress={() => {
+          triggerLight();
+          onPress();
+        }}
+      >
+        <View style={[styles.actionIcon, { backgroundColor: bgColor }]}>
+          {icon}
+        </View>
+        <Text style={[styles.actionLabel, { color: colors.ink }]}>{label}</Text>
+        <Text style={[styles.actionSublabel, { color: colors.inkMuted }]}>{sublabel}</Text>
+      </Pressable>
+    </MotiView>
+  );
+}
 
-export default function PlanDetailScreen() {
+export default function PlanHubScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { colors } = useTheme();
-  const {
-    plans,
-    togglePhaseAction,
-    toggleWeeklyTask,
-    toggleWeeklyMilestone,
-    toggleCheckpoint,
-    toggleSuccessMetric,
-    logRoutine,
-  } = usePlans();
+  const { colors, shadows } = useTheme();
+  const { t } = useLanguage();
+  const { plans } = usePlans();
 
-  const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set(["phases", "weekly"]));
-
-  const plan = plans.find(p => p.id === id);
+  const plan = plans.find((p) => p.id === id);
 
   if (!plan) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.notFound}>
-            <Text style={[styles.notFoundTitle, { color: colors.ink }]}>Plan not found</Text>
+            <Text style={[styles.notFoundTitle, { color: colors.ink }]}>
+              {t("planDetail.planNotFound")}
+            </Text>
             <Pressable onPress={() => router.back()}>
-              <Text style={[styles.notFoundLink, { color: colors.rust }]}>Go back</Text>
+              <Text style={[styles.notFoundLink, { color: colors.rust }]}>
+                {t("planDetail.goBack")}
+              </Text>
             </Pressable>
           </View>
         </SafeAreaView>
@@ -75,167 +81,136 @@ export default function PlanDetailScreen() {
     );
   }
 
-  const toggle = (s: SectionKey) => {
-    setExpanded(prev => {
-      const next = new Set(prev);
-      next.has(s) ? next.delete(s) : next.add(s);
-      return next;
-    });
-  };
+  const progress = plan.progress.overallProgress;
+
+  // Calculate stats
+  const totalRoutines = plan.content.routines.length;
+  const todayStr = new Date().toISOString().split("T")[0];
+  const completedToday = plan.content.routines.filter((_, ri) =>
+    plan.progress.routineHistory[ri]?.includes(todayStr)
+  ).length;
+
+  const currentWeekIndex = plan.content.weeklyPlans.findIndex((week, wi) => {
+    const tasksDone = week.tasks.filter((_, ti) =>
+      plan.progress.weeklyTasks[wi]?.[ti]
+    ).length;
+    return tasksDone < week.tasks.length;
+  });
+  const currentWeek = currentWeekIndex !== -1 ? plan.content.weeklyPlans[currentWeekIndex] : null;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        {/* Nav */}
-        <View style={[styles.nav, { borderBottomColor: colors.divider, backgroundColor: colors.background }]}>
+        {/* Header */}
+        <View style={[styles.header, { borderBottomColor: colors.divider }]}>
           <Pressable style={styles.backBtn} onPress={() => router.back()}>
             <ArrowLeft color={colors.ink} size={22} />
           </Pressable>
-          <Text style={[styles.navProgress, { color: colors.ink }]}>{plan.progress.overallProgress}%</Text>
+          <View style={styles.headerCenter}>
+            <Text style={[styles.headerTitle, { color: colors.ink }]} numberOfLines={1}>
+              {plan.content.title}
+            </Text>
+          </View>
           <View style={{ width: 44 }} />
         </View>
 
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          {/* Hero */}
-          <View style={styles.hero}>
-            <Text style={[styles.planTitle, { color: colors.ink }]}>{plan.content.title}</Text>
-            <Text style={[styles.planSummary, { color: colors.inkMedium }]}>{plan.content.summary}</Text>
-            <View style={[styles.progressBar, { backgroundColor: colors.divider }]}>
-              <View style={[styles.progressFill, { backgroundColor: colors.rust, width: `${plan.progress.overallProgress}%` }]} />
+          {/* Progress Ring */}
+          <MotiView
+            from={{ opacity: 0, translateY: -20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: "timing", duration: 500 }}
+            style={styles.progressSection}
+          >
+            <View style={[styles.progressRing, { borderColor: colors.rust }]}>
+              <View style={[styles.progressRingInner, { backgroundColor: colors.background }]}>
+                <Text style={[styles.progressPercent, { color: colors.rust }]}>{progress}</Text>
+                <Text style={[styles.progressLabel, { color: colors.inkMuted }]}>%</Text>
+              </View>
             </View>
-            <Pressable
-              style={[styles.exportBtn, { backgroundColor: colors.rustSoft }]}
-              onPress={() => exportPlanToCalendar(plan)}
-            >
-              <CalendarPlus color={colors.rust} size={18} strokeWidth={1.8} />
-              <Text style={[styles.exportBtnText, { color: colors.rust }]}>Export to Calendar</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.exportBtn, { backgroundColor: colors.sageSoft }]}
-              onPress={() => exportPlanToPDF(plan)}
-            >
-              <FileDown color={colors.sage} size={18} strokeWidth={1.8} />
-              <Text style={[styles.exportBtnText, { color: colors.sage }]}>Download PDF</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.exportBtn, { backgroundColor: colors.rust }]}
-              onPress={() => router.push({ pathname: "/coach" as any, params: { planId: plan.id } })}
-            >
-              <MessageCircle color="#FFF" size={18} strokeWidth={1.8} />
-              <Text style={[styles.exportBtnText, { color: "#FFF" }]}>Ask AI Coach</Text>
-            </Pressable>
-          </View>
+            <Text style={[styles.progressTitle, { color: colors.ink }]}>
+              {progress < 25 ? "Just Getting Started" :
+                progress < 50 ? "Building Momentum" :
+                  progress < 75 ? "Halfway There" :
+                    progress < 100 ? "Almost Done" : "Complete!"}
+            </Text>
+            {currentWeek && (
+              <Text style={[styles.currentWeek, { color: colors.inkMedium }]}>
+                Week {currentWeek.week}: {currentWeek.focus}
+              </Text>
+            )}
+          </MotiView>
 
           {/* Quote */}
-          <View style={styles.quote}>
-            <View style={[styles.quoteLine, { backgroundColor: colors.rust }]} />
-            <Text style={[styles.quoteText, { color: colors.inkMedium }]}>{plan.content.motivationalQuote}</Text>
-          </View>
+          <MotiView
+            from={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 200 }}
+            style={[styles.quoteCard, { backgroundColor: colors.surface }, shadows.card]}
+          >
+            <Sparkles color={colors.rust} size={16} />
+            <Text style={[styles.quoteText, { color: colors.inkMedium }]}>
+              "{plan.content.motivationalQuote}"
+            </Text>
+          </MotiView>
 
-          {/* Sections */}
-
-          {/* Diagnosis */}
-          <View style={[styles.section, { borderBottomColor: colors.divider }]}>
-            <SectionHeader
-              label="Diagnosis"
-              icon={icons.diagnosis}
-              isOpen={expanded.has("diagnosis")}
-              onToggle={() => toggle("diagnosis")}
+          {/* Quick Actions Grid */}
+          <View style={styles.actionsGrid}>
+            <QuickAction
+              icon={<Map color={colors.rust} size={22} />}
+              label={t("planDetail.roadmap")}
+              sublabel={`${plan.content.phases.length} phases`}
+              color={colors.rust}
+              bgColor={colors.rustSoft}
+              onPress={() => router.push(`/plan/${id}/roadmap` as any)}
+              delay={100}
             />
-            {expanded.has("diagnosis") && <DiagnosisSection plan={plan} />}
+            <QuickAction
+              icon={<CheckSquare color={colors.sage} size={22} />}
+              label={t("planDetail.routines")}
+              sublabel={`${completedToday}/${totalRoutines} today`}
+              color={colors.sage}
+              bgColor={colors.sageSoft}
+              onPress={() => router.push(`/plan/${id}/tasks` as any)}
+              delay={150}
+            />
+            <QuickAction
+              icon={<BarChart3 color={colors.ink} size={22} />}
+              label={t("planDetail.successMetrics")}
+              sublabel={`${plan.content.successMetrics.length} metrics`}
+              color={colors.ink}
+              bgColor={colors.divider}
+              onPress={() => router.push(`/plan/${id}/analytics` as any)}
+              delay={200}
+            />
+            <QuickAction
+              icon={<Settings2 color={colors.inkMedium} size={22} />}
+              label="Actions"
+              sublabel="Export & more"
+              color={colors.inkMedium}
+              bgColor={colors.backgroundDeep}
+              onPress={() => router.push(`/plan/${id}/actions` as any)}
+              delay={250}
+            />
           </View>
 
-          {/* Phases */}
-          <View style={[styles.section, { borderBottomColor: colors.divider }]}>
-            <SectionHeader
-              label="Roadmap"
-              icon={icons.phases}
-              isOpen={expanded.has("phases")}
-              onToggle={() => toggle("phases")}
-            />
-            {expanded.has("phases") && (
-              <PhaseSection
-                plan={plan}
-                onToggleAction={togglePhaseAction}
-              />
-            )}
-          </View>
-
-          {/* Weekly */}
-          <View style={[styles.section, { borderBottomColor: colors.divider }]}>
-            <SectionHeader
-              label="Weekly Plans"
-              icon={icons.weekly}
-              isOpen={expanded.has("weekly")}
-              onToggle={() => toggle("weekly")}
-            />
-            {expanded.has("weekly") && (
-              <WeeklySection
-                plan={plan}
-                onToggleTask={toggleWeeklyTask}
-                onToggleMilestone={toggleWeeklyMilestone}
-              />
-            )}
-          </View>
-
-          {/* Routines */}
-          <View style={[styles.section, { borderBottomColor: colors.divider }]}>
-            <SectionHeader
-              label="Routines"
-              icon={icons.routines}
-              isOpen={expanded.has("routines")}
-              onToggle={() => toggle("routines")}
-            />
-            {expanded.has("routines") && (
-              <RoutineSection
-                plan={plan}
-                onLogRoutine={logRoutine}
-              />
-            )}
-          </View>
-
-          {/* Obstacles */}
-          <View style={[styles.section, { borderBottomColor: colors.divider }]}>
-            <SectionHeader
-              label="Obstacles"
-              icon={icons.obstacles}
-              isOpen={expanded.has("obstacles")}
-              onToggle={() => toggle("obstacles")}
-            />
-            {expanded.has("obstacles") && <ObstacleSection plan={plan} />}
-          </View>
-
-          {/* Checkpoints */}
-          <View style={[styles.section, { borderBottomColor: colors.divider }]}>
-            <SectionHeader
-              label="Checkpoints"
-              icon={icons.checkpoints}
-              isOpen={expanded.has("checkpoints")}
-              onToggle={() => toggle("checkpoints")}
-            />
-            {expanded.has("checkpoints") && (
-              <CheckpointSection
-                plan={plan}
-                onToggleCheckpoint={toggleCheckpoint}
-              />
-            )}
-          </View>
-
-          {/* Metrics */}
-          <View style={[styles.section, { borderBottomColor: colors.divider }]}>
-            <SectionHeader
-              label="Success Metrics"
-              icon={icons.metrics}
-              isOpen={expanded.has("metrics")}
-              onToggle={() => toggle("metrics")}
-            />
-            {expanded.has("metrics") && (
-              <MetricsSection
-                plan={plan}
-                onToggleMetric={toggleSuccessMetric}
-              />
-            )}
-          </View>
+          {/* AI Coach Button */}
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ delay: 400 }}
+          >
+            <Pressable
+              style={[styles.coachButton, { backgroundColor: colors.rust }]}
+              onPress={() => {
+                triggerLight();
+                router.push({ pathname: "/coach" as any, params: { planId: plan.id } });
+              }}
+            >
+              <MessageCircle color="#FFF" size={20} />
+              <Text style={styles.coachButtonText}>{t("planDetail.askCoach")}</Text>
+            </Pressable>
+          </MotiView>
 
           <View style={{ height: 40 }} />
         </ScrollView>
@@ -247,11 +222,11 @@ export default function PlanDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1 },
-  nav: {
+  header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderBottomWidth: 0.5,
   },
   backBtn: {
@@ -260,72 +235,75 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  navProgress: {
-    flex: 1,
-    textAlign: "center",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  scroll: { paddingHorizontal: 24, paddingTop: 24 },
-  // Hero
-  hero: { marginBottom: 24 },
-  planTitle: {
-    fontSize: 26,
-    fontWeight: "700",
-    lineHeight: 34,
-    letterSpacing: -0.4,
-    marginBottom: 12,
-  },
-  planSummary: {
-    fontSize: 16,
-    lineHeight: 24,
+  headerCenter: { flex: 1, alignItems: "center" },
+  headerTitle: { fontSize: 17, fontWeight: "600" },
+  scroll: { paddingHorizontal: 24, paddingTop: 32 },
+  // Progress
+  progressSection: { alignItems: "center", marginBottom: 32 },
+  progressRing: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 8,
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 20,
   },
-  progressBar: {
-    height: 5,
-    borderRadius: 3,
-    overflow: "hidden",
+  progressRingInner: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  progressFill: {
-    height: "100%",
-    borderRadius: 3,
+  progressPercent: { fontSize: 42, fontWeight: "200", letterSpacing: -2 },
+  progressLabel: { fontSize: 18, marginTop: -4 },
+  progressTitle: { fontSize: 20, fontWeight: "600", marginBottom: 6 },
+  currentWeek: { fontSize: 14, textAlign: "center" },
+  // Quote
+  quoteCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: 16,
+    borderRadius: 14,
+    marginBottom: 28,
+    gap: 12,
   },
-  exportBtn: {
+  quoteText: { flex: 1, fontSize: 14, fontStyle: "italic", lineHeight: 22 },
+  // Actions Grid
+  actionsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 14,
+    marginBottom: 24,
+  },
+  actionCard: {
+    width: "47%",
+    padding: 18,
+    borderRadius: 16,
+    alignItems: "center",
+  },
+  actionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  actionLabel: { fontSize: 15, fontWeight: "600", marginBottom: 4 },
+  actionSublabel: { fontSize: 12 },
+  // Coach Button
+  coachButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    marginTop: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
+    gap: 10,
   },
-  exportBtnText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  // Quote
-  quote: {
-    flexDirection: "row",
-    marginBottom: 32,
-  },
-  quoteLine: {
-    width: 3,
-    borderRadius: 2,
-    marginRight: 16,
-  },
-  quoteText: {
-    flex: 1,
-    fontSize: 16,
-    fontStyle: "italic",
-    lineHeight: 24,
-  },
-  // Section
-  section: {
-    marginBottom: 16,
-    borderBottomWidth: 0.5,
-    paddingBottom: 16,
-  },
+  coachButtonText: { fontSize: 16, fontWeight: "600", color: "#FFF" },
   // Not found
   notFound: { flex: 1, alignItems: "center", justifyContent: "center" },
   notFoundTitle: { fontSize: 18, fontWeight: "500", marginBottom: 12 },

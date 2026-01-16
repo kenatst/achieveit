@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -14,22 +14,56 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { ArrowRight } from "lucide-react-native";
+import { ArrowRight, Sparkles } from "lucide-react-native";
 import { MotiView } from "moti";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import Typography from "@/constants/typography";
 import HelpTip from "@/components/HelpTip";
 import { TIPS } from "@/constants/tips";
+import { triggerLight, triggerSelection } from "@/utils/haptics";
+
+// Smart suggestions based on input
+const SUGGESTIONS = [
+  { prefix: "learn", suggestions: ["Learn Japanese", "Learn to code", "Learn photography", "Learn public speaking"] },
+  { prefix: "build", suggestions: ["Build a startup", "Build muscle", "Build an app", "Build passive income"] },
+  { prefix: "run", suggestions: ["Run a marathon", "Run a business", "Run 5K", "Run every day"] },
+  { prefix: "become", suggestions: ["Become a developer", "Become more confident", "Become financially free", "Become an expert"] },
+  { prefix: "start", suggestions: ["Start a podcast", "Start writing", "Start meditating", "Start investing"] },
+  { prefix: "master", suggestions: ["Master guitar", "Master cooking", "Master a new language", "Master negotiation"] },
+];
 
 export default function HomeScreen() {
   const { colors } = useTheme();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [goal, setGoal] = useState("");
   const [active, setActive] = useState(false);
   const router = useRouter();
 
   const focusAnim = useRef(new Animated.Value(0)).current;
+
+  // Get matching suggestions
+  const matchingSuggestions = useMemo(() => {
+    if (goal.length < 2) return [];
+    const lower = goal.toLowerCase();
+
+    for (const group of SUGGESTIONS) {
+      if (lower.startsWith(group.prefix)) {
+        return group.suggestions.filter(s =>
+          s.toLowerCase().startsWith(lower) && s.toLowerCase() !== lower
+        ).slice(0, 3);
+      }
+    }
+
+    // Partial match on any prefix
+    for (const group of SUGGESTIONS) {
+      if (group.prefix.startsWith(lower)) {
+        return group.suggestions.slice(0, 3);
+      }
+    }
+
+    return [];
+  }, [goal]);
 
   const handleFocus = () => {
     setActive(true);
@@ -49,6 +83,11 @@ export default function HomeScreen() {
         useNativeDriver: false,
       }).start();
     }
+  };
+
+  const handleSelectSuggestion = (suggestion: string) => {
+    triggerSelection();
+    setGoal(suggestion);
   };
 
   const bgStyle = {
@@ -86,7 +125,9 @@ export default function HomeScreen() {
                 style={styles.logo}
                 resizeMode="contain"
               />
-              <Text style={[styles.date, { color: colors.inkMedium }]}>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</Text>
+              <Text style={[styles.date, { color: colors.inkMedium }]}>
+                {new Date().toLocaleDateString(locale, { month: 'long', day: 'numeric' })}
+              </Text>
             </MotiView>
 
             {/* The Question as Art */}
@@ -123,6 +164,31 @@ export default function HomeScreen() {
               <View style={[styles.inputLine, { backgroundColor: colors.ink }]} />
             </MotiView>
 
+            {/* Smart Suggestions */}
+            {matchingSuggestions.length > 0 && active && (
+              <MotiView
+                from={{ opacity: 0, translateY: -10 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                style={styles.suggestionsContainer}
+              >
+                <View style={styles.suggestionsHeader}>
+                  <Sparkles color={colors.rust} size={14} />
+                  <Text style={[styles.suggestionsLabel, { color: colors.inkMuted }]}>Suggestions</Text>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionsList}>
+                  {matchingSuggestions.map((suggestion, i) => (
+                    <Pressable
+                      key={suggestion}
+                      style={[styles.suggestionChip, { backgroundColor: colors.surface, borderColor: colors.divider }]}
+                      onPress={() => handleSelectSuggestion(suggestion)}
+                    >
+                      <Text style={[styles.suggestionText, { color: colors.ink }]}>{suggestion}</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </MotiView>
+            )}
+
             {/* Floating Action Button (Shows only when typing) */}
             {goal.length > 0 && (
               <MotiView
@@ -133,6 +199,7 @@ export default function HomeScreen() {
                 <Pressable
                   style={[styles.fab, { backgroundColor: colors.ink, shadowColor: colors.accent }]}
                   onPress={() => {
+                    triggerLight();
                     Keyboard.dismiss();
                     router.push({ pathname: "/questionnaire", params: { goal: goal.trim() } });
                   }}
@@ -168,12 +235,8 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+  safeArea: { flex: 1 },
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 28,
@@ -188,72 +251,57 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     marginBottom: 60,
   },
-  logo: {
-    width: 60,
-    height: 30,
-  },
-  date: {
-    ...Typography.sans.caption,
-    fontSize: 13,
-  },
-  promptContainer: {
-    marginBottom: 40,
-  },
+  logo: { width: 60, height: 30 },
+  date: { ...Typography.sans.caption, fontSize: 13 },
+  promptContainer: { marginBottom: 40 },
   promptText: {
-    ...Typography.display.hero,
-    fontSize: 48,
-    lineHeight: 56,
+    fontSize: 32,
+    fontWeight: "300",
+    lineHeight: 44,
+    letterSpacing: -0.8,
   },
-  italicText: {
-    ...Typography.display.italic,
-  },
-  inputWrapper: {
-    marginBottom: 40,
-    flex: 1,
-  },
+  italicText: { fontStyle: "italic", fontWeight: "400" },
+  inputWrapper: { marginBottom: 24 },
   input: {
-    ...Typography.display.h2,
+    fontSize: 20,
+    lineHeight: 32,
+    paddingVertical: 12,
     minHeight: 60,
-    paddingBottom: 16,
-    textAlignVertical: "top",
+    fontWeight: "400",
   },
-  inputLine: {
-    height: 1,
-    opacity: 0.2,
+  inputLine: { height: 1.5, marginTop: 4 },
+  // Suggestions
+  suggestionsContainer: { marginBottom: 20 },
+  suggestionsHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 },
+  suggestionsLabel: { fontSize: 12, fontWeight: "500" },
+  suggestionsList: { gap: 8 },
+  suggestionChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: 8,
   },
-  fabContainer: {
-    alignItems: "flex-end",
-    marginTop: 20,
-  },
+  suggestionText: { fontSize: 14, fontWeight: "500" },
+  // FAB
+  fabContainer: { marginTop: 20 },
   fab: {
-    paddingVertical: 16,
-    paddingHorizontal: 28,
-    borderRadius: 4,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
+    justifyContent: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 28,
+    borderRadius: 14,
+    gap: 10,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  fabText: {
-    ...Typography.sans.label,
-  },
-  inspirationFooter: {
-    marginBottom: 20,
-  },
-  inspirationLabel: {
-    ...Typography.sans.caption,
-    marginBottom: 12,
-    textTransform: "uppercase",
-  },
-  inspirationList: {
-    gap: 8,
-  },
-  inspirationItem: {
-    ...Typography.sans.body,
-    fontSize: 16,
-    fontStyle: "italic",
-    fontFamily: Platform.select({ ios: "Georgia-Italic", android: "serif" }),
-  },
+  fabText: { fontSize: 16, fontWeight: "600" },
+  // Inspiration
+  inspirationFooter: { marginTop: "auto", paddingTop: 40 },
+  inspirationLabel: { fontSize: 11, marginBottom: 10, letterSpacing: 1.5, textTransform: "uppercase" },
+  inspirationList: { gap: 4 },
+  inspirationItem: { fontSize: 14, lineHeight: 22 },
 });
