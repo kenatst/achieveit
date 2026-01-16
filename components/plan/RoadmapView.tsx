@@ -17,12 +17,11 @@ export default function RoadmapView({ plan }: { plan: any }) {
 
     return (
         <View style={styles.container}>
-            {/* Timeline Line (Visual) */}
+            {/* Timeline Line */}
             <View style={[styles.timelineLine, { backgroundColor: colors.divider }]} />
 
             {plan.content.phases.map((phase: any, index: number) => {
                 const isExpanded = expandedPhase === index;
-                const isCompleted = false; // Logic for phase completion could go here
 
                 return (
                     <View key={index} style={styles.phaseContainer}>
@@ -58,21 +57,23 @@ export default function RoadmapView({ plan }: { plan: any }) {
                                         <Target size={14} color={colors.inkMuted} />
                                         <Text style={[styles.sectionTitle, { color: colors.inkMuted }]}>KEY ACTIONS</Text>
                                     </View>
-                                    {phase.keyActions.map((action: string, i: number) => (
-                                        <View key={i} style={styles.bulletItem}>
-                                            <View style={[styles.bullet, { backgroundColor: colors.rust }]} />
-                                            <Text style={[styles.bulletText, { color: colors.ink }]}>{action}</Text>
-                                        </View>
-                                    ))}
+                                    <View style={styles.bullets}>
+                                        {phase.keyActions.map((action: string, i: number) => (
+                                            <View key={i} style={styles.bulletItem}>
+                                                <View style={[styles.bullet, { backgroundColor: colors.rust }]} />
+                                                <Text style={[styles.bulletText, { color: colors.ink }]}>{action}</Text>
+                                            </View>
+                                        ))}
+                                    </View>
                                 </View>
 
-                                {/* Obstacles (if any match this phase/general) */}
-                                <View style={[styles.obstacleBlock, { backgroundColor: colors.backgroundDeep }]}>
+                                {/* Risks */}
+                                <View style={[styles.riskBlock, { backgroundColor: colors.backgroundDeep }]}>
                                     <View style={styles.sectionHeader}>
-                                        <AlertTriangle size={14} color={colors.negative} />
-                                        <Text style={[styles.sectionTitle, { color: colors.negative }]}>POTENTIAL RISKS</Text>
+                                        <AlertTriangle size={14} color={colors.inkMuted} />
+                                        <Text style={[styles.sectionTitle, { color: colors.inkMuted }]}>RISKS</Text>
                                     </View>
-                                    <Text style={[styles.obstacleText, { color: colors.inkMedium }]}>
+                                    <Text style={[styles.riskText, { color: colors.inkMedium }]}>
                                         Watch out for burnout during this intensive phase. Keep routines steady.
                                     </Text>
                                 </View>
@@ -89,83 +90,87 @@ export default function RoadmapView({ plan }: { plan: any }) {
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 24,
-        paddingBottom: 60,
-        position: "relative",
+        paddingBottom: 80,
+        paddingTop: 20,
     },
     timelineLine: {
         position: "absolute",
-        left: 48, // Aligned with nodes ideally, needs adjustment based on design
+        left: 48,
         top: 0,
         bottom: 0,
         width: 2,
-        opacity: 0, // Hidden for now, can be enabled for strict timeline look
+        opacity: 0.1, // Visible but faint
     },
     phaseContainer: {
-        marginBottom: 20,
+        marginBottom: 24, // Increased spacing
     },
     phaseHeader: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: 20,
-        borderRadius: 16,
+        padding: 24,
+        borderRadius: 20,
     },
     headerLeft: {
         flex: 1,
     },
     phaseLabel: {
         ...Typography.sans.label,
-        fontSize: 10,
-        marginBottom: 4,
+        fontSize: 11,
+        marginBottom: 6,
     },
     phaseTitle: {
         fontSize: 18,
         fontWeight: "600",
+        lineHeight: 26,
     },
     phaseContent: {
         backgroundColor: "rgba(0,0,0,0.02)",
-        marginTop: -10,
-        paddingTop: 26,
-        padding: 20,
-        borderBottomLeftRadius: 16,
-        borderBottomRightRadius: 16,
+        marginTop: -16,
+        paddingTop: 32,
+        padding: 24,
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
     },
     sectionBlock: {
-        marginBottom: 20,
+        marginBottom: 24,
     },
     sectionHeader: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 6,
-        marginBottom: 10,
+        gap: 8,
+        marginBottom: 16,
     },
     sectionTitle: {
         ...Typography.sans.label,
-        fontSize: 11,
+        fontSize: 12,
+    },
+    bullets: {
+        gap: 12,
     },
     bulletItem: {
         flexDirection: "row",
         alignItems: "flex-start",
-        gap: 10,
-        marginBottom: 8,
+        gap: 12,
     },
     bullet: {
         width: 6,
         height: 6,
         borderRadius: 3,
-        marginTop: 8,
+        marginTop: 9,
     },
     bulletText: {
         flex: 1,
+        fontSize: 16,
+        lineHeight: 24,
+    },
+    riskBlock: {
+        padding: 20,
+        borderRadius: 16,
+    },
+    riskText: {
         fontSize: 15,
-        lineHeight: 22,
-    },
-    obstacleBlock: {
-        padding: 16,
-        borderRadius: 12,
-    },
-    obstacleText: {
-        fontSize: 14,
         fontStyle: "italic",
+        lineHeight: 22,
     },
 });

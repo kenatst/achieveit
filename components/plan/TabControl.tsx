@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, Pressable, LayoutChangeEvent } from "react-nati
 import { MotiView } from "moti";
 import { useTheme } from "@/contexts/ThemeContext";
 import { triggerSelection } from "@/utils/haptics";
-import Typography from "@/constants/typography";
 
 interface TabControlProps {
     tabs: string[];
@@ -18,7 +17,7 @@ export default function TabControl({ tabs, activeTab, onTabChange }: TabControlP
     const activeIndex = tabs.indexOf(activeTab);
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.surface + "CC", borderColor: colors.divider }]}>
+        <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.divider }]}>
             {/* Background pill indicator */}
             {layout.length === tabs.length && (
                 <MotiView
@@ -27,7 +26,7 @@ export default function TabControl({ tabs, activeTab, onTabChange }: TabControlP
                         width: layout[activeIndex]?.width || 0,
                     }}
                     transition={{ type: "spring", damping: 20, stiffness: 200 }}
-                    style={[styles.indicator, { backgroundColor: colors.backgroundDeep }]}
+                    style={[styles.indicator, { backgroundColor: colors.rust }]}
                 />
             )}
 
@@ -55,7 +54,7 @@ export default function TabControl({ tabs, activeTab, onTabChange }: TabControlP
                         style={[
                             styles.tabText,
                             {
-                                color: activeTab === tab ? colors.ink : colors.inkMuted,
+                                color: activeTab === tab ? "#FFF" : colors.inkMuted,
                                 fontWeight: activeTab === tab ? "600" : "500",
                             },
                         ]}
@@ -71,30 +70,30 @@ export default function TabControl({ tabs, activeTab, onTabChange }: TabControlP
 const styles = StyleSheet.create({
     container: {
         flexDirection: "row",
-        borderRadius: 24,
-        padding: 4,
+        borderRadius: 30, // Rounder
+        padding: 6, // Thicker padding
         borderWidth: 1,
-        marginHorizontal: 16,
-        marginBottom: 8,
+        marginHorizontal: 24, // Matches new layout
+        marginBottom: 16,
         position: "relative",
     },
     tab: {
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        paddingVertical: 10,
+        paddingVertical: 12, // Taller touch target
         zIndex: 1,
     },
     tabText: {
         fontSize: 12,
-        letterSpacing: 0.5,
+        letterSpacing: 0.8,
         textTransform: "uppercase",
     },
     indicator: {
         position: "absolute",
-        top: 4,
-        bottom: 4,
-        borderRadius: 20,
+        top: 6,
+        bottom: 6,
+        borderRadius: 24,
         zIndex: 0,
     },
 });

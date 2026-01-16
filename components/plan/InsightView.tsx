@@ -58,22 +58,24 @@ export default function InsightView({ plan }: { plan: any }) {
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 24,
+        paddingTop: 24,
         paddingBottom: 40,
     },
     card: {
-        padding: 24,
-        borderRadius: 20,
-        marginBottom: 32,
+        padding: 28, // Louder padding
+        borderRadius: 24,
+        marginBottom: 40,
     },
     cardHeader: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 10,
-        marginBottom: 20,
+        gap: 12,
+        marginBottom: 24,
     },
     cardTitle: {
         fontSize: 16,
         fontWeight: "600",
+        letterSpacing: -0.3,
     },
     statRow: {
         flexDirection: "row",
@@ -82,11 +84,13 @@ const styles = StyleSheet.create({
     statValue: {
         ...Typography.display.h1,
         textAlign: "center",
+        fontSize: 40, // Bigger
     },
     statLabel: {
         ...Typography.sans.caption,
         textAlign: "center",
-        marginTop: 4,
+        marginTop: 8,
+        fontSize: 12,
     },
     vertDivider: {
         width: 1,
@@ -94,23 +98,23 @@ const styles = StyleSheet.create({
         alignSelf: "center",
     },
     section: {
-        marginTop: 8,
+        marginTop: 0,
     },
     sectionTitle: {
         ...Typography.sans.label,
-        marginBottom: 16,
+        marginBottom: 20,
     },
     milestoneRow: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 16,
+        paddingVertical: 20, // More breathing room
         borderBottomWidth: 1,
-        gap: 16,
+        gap: 20,
     },
     iconCircle: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         alignItems: "center",
         justifyContent: "center",
     },
@@ -118,14 +122,15 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     milestoneTitle: {
-        fontSize: 16,
-        fontWeight: "500",
+        fontSize: 17,
+        fontWeight: "600",
+        marginBottom: 4,
     },
     milestoneStatus: {
-        fontSize: 13,
+        fontSize: 14,
     },
     dateText: {
-        fontSize: 13,
+        fontSize: 14,
         fontVariant: ["tabular-nums"],
     },
 });

@@ -161,7 +161,14 @@ export default function PlanDetailScreen() {
           <Text style={[styles.stickyTitle, { color: colors.ink }]} numberOfLines={1}>
             {plan.content.title}
           </Text>
-          {/* Small Tab Indicators could go here */}
+          {/* Integrated Coach Action */}
+          <Pressable
+            style={styles.stickyCoachBtn}
+            onPress={() => router.push({ pathname: "/coach" as any, params: { planId: plan.id } })}
+            hitSlop={10}
+          >
+            <MessageCircle size={20} color={colors.rust} />
+          </Pressable>
         </View>
       </Animated.View>
 
@@ -175,12 +182,6 @@ export default function PlanDetailScreen() {
             <ArrowLeft color={colors.ink} size={24} />
           </Pressable>
           <View style={{ flex: 1 }} />
-          <Pressable
-            style={[styles.iconButton, { backgroundColor: colors.rust, marginRight: 12 }]}
-            onPress={() => router.push({ pathname: "/coach" as any, params: { planId: plan.id } })}
-          >
-            <MessageCircle color="#FFF" size={24} strokeWidth={2} />
-          </Pressable>
           <Pressable
             style={[styles.iconButton, { backgroundColor: colors.background + "80" }]}
             onPress={() => router.push(`/plan/${id}/actions` as any)}
@@ -304,13 +305,19 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "flex-end",
-    paddingBottom: 16,
-    paddingHorizontal: 60, // Space for back button
-    justifyContent: "center",
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+    justifyContent: "center", // Center title
     borderBottomWidth: 0.5,
   },
   stickyTitle: {
     fontSize: 17,
     fontWeight: "600",
+  },
+  stickyCoachBtn: {
+    position: "absolute",
+    right: 16,
+    bottom: 12,
+    padding: 4,
   },
 });

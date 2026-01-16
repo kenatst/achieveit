@@ -255,7 +255,8 @@ const styles = StyleSheet.create({
   date: { ...Typography.sans.caption, fontSize: 13 },
   promptContainer: { marginBottom: 40 },
   promptText: {
-    fontSize: 32,
+    ...Typography.sans.headline,
+    fontSize: 32, // Overriding slightly if needed
     fontWeight: "300",
     lineHeight: 44,
     letterSpacing: -0.8,

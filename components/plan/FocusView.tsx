@@ -1,15 +1,14 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { Check, RefreshCw, Calendar, ArrowRight } from "lucide-react-native";
+import { Check, RefreshCw, Calendar } from "lucide-react-native";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { usePlans } from "@/contexts/PlansContext";
-import { triggerSuccess, triggerLight } from "@/utils/haptics";
+import { triggerSuccess } from "@/utils/haptics";
 import Typography from "@/constants/typography";
 
 export default function FocusView({ plan }: { plan: any }) {
     const { colors, shadows } = useTheme();
-    const { t } = useLanguage();
     const { logRoutine } = usePlans();
 
     const todayStr = new Date().toISOString().split("T")[0];
@@ -93,17 +92,12 @@ export default function FocusView({ plan }: { plan: any }) {
                 ))}
             </View>
 
-            {/* Weekly Focus Widget */}
-            <View style={[styles.focusWidget, { backgroundColor: colors.backgroundDeep }]}>
-                <View style={styles.focusHeader}>
-                    <Calendar size={18} color={colors.ink} />
-                    <Text style={[styles.focusLabel, { color: colors.ink }]}>THIS WEEK'S OBJECTIVE</Text>
-                </View>
-                {plan.content.weeklyPlans[0] && (
-                    <Text style={[styles.focusText, { color: colors.ink }]}>
-                        {plan.content.weeklyPlans[0].focus}
-                    </Text>
-                )}
+            {/* Coach Invitation Footer (New Design) */}
+            <View style={[styles.coachCard, { backgroundColor: colors.backgroundDeep }]}>
+                <Text style={[styles.coachLabel, { color: colors.inkMuted }]}>NEED GUIDANCE?</Text>
+                <Text style={[styles.coachTitle, { color: colors.ink }]}>
+                    Ask your AI Coach for feedback on your progress.
+                </Text>
             </View>
 
         </View>
@@ -113,39 +107,44 @@ export default function FocusView({ plan }: { plan: any }) {
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 24,
-        paddingBottom: 40,
+        paddingBottom: 60,
     },
     header: {
-        marginBottom: 32,
+        marginBottom: 40, // Increased spacing
+        marginTop: 10,
     },
     dateLabel: {
         ...Typography.sans.label,
         marginBottom: 8,
     },
     title: {
-        ...Typography.display.h2,
+        // Use Sans Serif intentionally for main content headers to clean up
+        fontSize: 34,
+        fontWeight: "600",
+        letterSpacing: -1,
         marginBottom: 8,
     },
     subtitle: {
         ...Typography.sans.body,
-        fontSize: 15,
-        lineHeight: 22,
+        fontSize: 16,
+        lineHeight: 24,
+        opacity: 0.8,
     },
     list: {
-        gap: 16,
-        marginBottom: 40,
+        gap: 20, // Increased gap
+        marginBottom: 48,
     },
     card: {
         flexDirection: "row",
         alignItems: "center",
-        padding: 20,
-        borderRadius: 16,
+        padding: 24, // Louder padding
+        borderRadius: 20,
     },
     cardLeft: {
         flex: 1,
     },
     routineName: {
-        fontSize: 17,
+        fontSize: 18,
         fontWeight: "500",
         marginBottom: 6,
     },
@@ -155,34 +154,31 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     routineMeta: {
-        fontSize: 13,
+        fontSize: 14,
     },
     checkbox: {
-        width: 28,
-        height: 28,
-        borderRadius: 8,
+        width: 32, // Larger touch target
+        height: 32,
+        borderRadius: 10,
         borderWidth: 2,
         alignItems: "center",
         justifyContent: "center",
     },
-    focusWidget: {
+    // Coach Card
+    coachCard: {
         padding: 24,
         borderRadius: 20,
-    },
-    focusHeader: {
-        flexDirection: "row",
         alignItems: "center",
-        gap: 10,
-        marginBottom: 12,
+        marginTop: 20,
     },
-    focusLabel: {
+    coachLabel: {
         ...Typography.sans.label,
-        fontSize: 12,
+        fontSize: 11,
+        marginBottom: 8,
     },
-    focusText: {
-        fontSize: 18,
-        fontWeight: "500",
-        lineHeight: 28,
-        fontStyle: "italic",
-    },
+    coachTitle: {
+        fontSize: 16,
+        textAlign: "center",
+        lineHeight: 24,
+    }
 });
