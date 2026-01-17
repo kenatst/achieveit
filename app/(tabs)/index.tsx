@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Pressable,
   Animated,
-  Keyboard,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
@@ -15,58 +14,84 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ArrowRight, Sparkles } from "lucide-react-native";
-import { MotiView } from "moti";
+import { MotiView, AnimatePresence } from "moti";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import Typography from "@/constants/typography";
+import { lightTap } from "@/utils/haptics";
 import HelpTip from "@/components/HelpTip";
 import { TIPS } from "@/constants/tips";
-import { triggerLight, triggerSelection } from "@/utils/haptics";
 
-// Smart suggestions based on input
-const SUGGESTIONS = [
-  { prefix: "learn", suggestions: ["Learn Japanese", "Learn to code", "Learn photography", "Learn public speaking"] },
-  { prefix: "build", suggestions: ["Build a startup", "Build muscle", "Build an app", "Build passive income"] },
-  { prefix: "run", suggestions: ["Run a marathon", "Run a business", "Run 5K", "Run every day"] },
-  { prefix: "become", suggestions: ["Become a developer", "Become more confident", "Become financially free", "Become an expert"] },
-  { prefix: "start", suggestions: ["Start a podcast", "Start writing", "Start meditating", "Start investing"] },
-  { prefix: "master", suggestions: ["Master guitar", "Master cooking", "Master a new language", "Master negotiation"] },
-];
+// Smart suggestions based on common goals
+const SUGGESTIONS = {
+  en: [
+    { text: "Learn a new language", icon: "🗣️" },
+    { text: "Run a marathon", icon: "🏃" },
+    { text: "Launch a business", icon: "🚀" },
+    { text: "Master an instrument", icon: "🎹" },
+    { text: "Write a book", icon: "📖" },
+    { text: "Get in shape", icon: "💪" },
+  ],
+  fr: [
+    { text: "Apprendre une langue", icon: "🗣️" },
+    { text: "Courir un marathon", icon: "🏃" },
+    { text: "Lancer un business", icon: "🚀" },
+    { text: "Maîtriser un instrument", icon: "🎹" },
+    { text: "Écrire un livre", icon: "📖" },
+    { text: "Se remettre en forme", icon: "💪" },
+  ],
+  es: [
+    { text: "Aprender un idioma", icon: "🗣️" },
+    { text: "Correr un maratón", icon: "🏃" },
+    { text: "Lanzar un negocio", icon: "🚀" },
+    { text: "Dominar un instrumento", icon: "🎹" },
+    { text: "Escribir un libro", icon: "📖" },
+    { text: "Ponerse en forma", icon: "💪" },
+  ],
+  de: [
+    { text: "Eine Sprache lernen", icon: "🗣️" },
+    { text: "Einen Marathon laufen", icon: "🏃" },
+    { text: "Ein Unternehmen gründen", icon: "🚀" },
+    { text: "Ein Instrument meistern", icon: "🎹" },
+    { text: "Ein Buch schreiben", icon: "📖" },
+    { text: "In Form kommen", icon: "💪" },
+  ],
+  it: [
+    { text: "Imparare una lingua", icon: "🗣️" },
+    { text: "Correre una maratona", icon: "🏃" },
+    { text: "Avviare un business", icon: "🚀" },
+    { text: "Padroneggiare uno strumento", icon: "🎹" },
+    { text: "Scrivere un libro", icon: "📖" },
+    { text: "Rimettersi in forma", icon: "💪" },
+  ],
+};
 
 export default function HomeScreen() {
-  const { colors } = useTheme();
+  const { colors, shadows } = useTheme();
   const { t, locale } = useLanguage();
   const [goal, setGoal] = useState("");
   const [active, setActive] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const router = useRouter();
 
   const focusAnim = useRef(new Animated.Value(0)).current;
 
-  // Get matching suggestions
-  const matchingSuggestions = useMemo(() => {
-    if (goal.length < 2) return [];
-    const lower = goal.toLowerCase();
+  const suggestions = useMemo(() => {
+    return SUGGESTIONS[locale as keyof typeof SUGGESTIONS] || SUGGESTIONS.en;
+  }, [locale]);
 
-    for (const group of SUGGESTIONS) {
-      if (lower.startsWith(group.prefix)) {
-        return group.suggestions.filter(s =>
-          s.toLowerCase().startsWith(lower) && s.toLowerCase() !== lower
-        ).slice(0, 3);
-      }
-    }
-
-    // Partial match on any prefix
-    for (const group of SUGGESTIONS) {
-      if (group.prefix.startsWith(lower)) {
-        return group.suggestions.slice(0, 3);
-      }
-    }
-
-    return [];
-  }, [goal]);
+  // Filter suggestions based on input
+  const filteredSuggestions = useMemo(() => {
+    if (!goal.trim()) return suggestions.slice(0, 4);
+    const query = goal.toLowerCase();
+    return suggestions.filter(s =>
+      s.text.toLowerCase().includes(query)
+    ).slice(0, 3);
+  }, [goal, suggestions]);
 
   const handleFocus = () => {
     setActive(true);
+    setShowSuggestions(true);
+    lightTap();
     Animated.timing(focusAnim, {
       toValue: 1,
       duration: 400,
@@ -75,6 +100,7 @@ export default function HomeScreen() {
   };
 
   const handleBlur = () => {
+    setTimeout(() => setShowSuggestions(false), 200);
     if (!goal) {
       setActive(false);
       Animated.timing(focusAnim, {
@@ -85,9 +111,16 @@ export default function HomeScreen() {
     }
   };
 
-  const handleSelectSuggestion = (suggestion: string) => {
-    triggerSelection();
-    setGoal(suggestion);
+  const handleSuggestionPress = (text: string) => {
+    lightTap();
+    setGoal(text);
+    setShowSuggestions(false);
+  };
+
+  const handleSubmit = () => {
+    if (!goal.trim()) return;
+    lightTap();
+    router.push({ pathname: "/questionnaire", params: { goal: goal.trim() } });
   };
 
   const bgStyle = {
@@ -113,7 +146,7 @@ export default function HomeScreen() {
             contentContainerStyle={styles.scroll}
             keyboardShouldPersistTaps="handled"
           >
-            {/* The Statement Header */}
+            {/* Header */}
             <MotiView
               from={{ opacity: 0, translateY: -20 }}
               animate={{ opacity: 1, translateY: 0 }}
@@ -130,7 +163,7 @@ export default function HomeScreen() {
               </Text>
             </MotiView>
 
-            {/* The Question as Art */}
+            {/* Prompt */}
             <MotiView
               from={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -139,94 +172,96 @@ export default function HomeScreen() {
             >
               <Text style={[styles.promptText, { color: colors.ink }]}>
                 {t("home.prompt")}
-                <Text style={[styles.italicText, { color: colors.accent }]}>{t("home.promptHighlight")}</Text>
+              </Text>
+              <Text style={[styles.promptHighlight, { color: colors.rust }]}>
+                {t("home.promptHighlight")}
               </Text>
             </MotiView>
 
-            {/* Minimally Invasive Input */}
+            {/* Input */}
             <MotiView
-              from={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ type: 'timing', duration: 600, delay: 500 }}
-              style={styles.inputWrapper}
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 600, delay: 400 }}
+              style={styles.inputSection}
             >
-              <TextInput
-                style={[styles.input, { color: colors.ink }]}
-                placeholder={t("home.placeholder")}
-                placeholderTextColor={colors.inkLight}
-                value={goal}
-                onChangeText={setGoal}
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-                multiline
-                scrollEnabled={false}
-              />
-              <View style={[styles.inputLine, { backgroundColor: colors.ink }]} />
-            </MotiView>
+              <View style={[styles.inputCard, { backgroundColor: colors.surface }, shadows.card]}>
+                <TextInput
+                  style={[styles.input, { color: colors.ink }]}
+                  placeholder={t("home.placeholder")}
+                  placeholderTextColor={colors.inkFaint}
+                  value={goal}
+                  onChangeText={setGoal}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
+                  multiline
+                  maxLength={200}
+                />
+              </View>
 
-            {/* Smart Suggestions */}
-            {matchingSuggestions.length > 0 && active && (
-              <MotiView
-                from={{ opacity: 0, translateY: -10 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                style={styles.suggestionsContainer}
-              >
-                <View style={styles.suggestionsHeader}>
-                  <Sparkles color={colors.rust} size={14} />
-                  <Text style={[styles.suggestionsLabel, { color: colors.inkMuted }]}>Suggestions</Text>
-                </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionsList}>
-                  {matchingSuggestions.map((suggestion, i) => (
-                    <Pressable
-                      key={suggestion}
-                      style={[styles.suggestionChip, { backgroundColor: colors.surface, borderColor: colors.divider }]}
-                      onPress={() => handleSelectSuggestion(suggestion)}
-                    >
-                      <Text style={[styles.suggestionText, { color: colors.ink }]}>{suggestion}</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </MotiView>
-            )}
+              {/* Smart Suggestions */}
+              <AnimatePresence>
+                {showSuggestions && filteredSuggestions.length > 0 && (
+                  <MotiView
+                    from={{ opacity: 0, translateY: -10 }}
+                    animate={{ opacity: 1, translateY: 0 }}
+                    exit={{ opacity: 0, translateY: -10 }}
+                    transition={{ type: 'timing', duration: 200 }}
+                    style={styles.suggestionsContainer}
+                  >
+                    <View style={styles.suggestionsHeader}>
+                      <Sparkles color={colors.rust} size={14} />
+                      <Text style={[styles.suggestionsLabel, { color: colors.inkMuted }]}>
+                        {t("home.observations") || "Suggestions"}
+                      </Text>
+                    </View>
+                    <View style={styles.suggestionsPills}>
+                      {filteredSuggestions.map((suggestion, index) => (
+                        <MotiView
+                          key={suggestion.text}
+                          from={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: index * 50 }}
+                        >
+                          <Pressable
+                            style={[
+                              styles.suggestionPill,
+                              { backgroundColor: colors.background, borderColor: colors.divider }
+                            ]}
+                            onPress={() => handleSuggestionPress(suggestion.text)}
+                          >
+                            <Text style={styles.suggestionIcon}>{suggestion.icon}</Text>
+                            <Text style={[styles.suggestionText, { color: colors.ink }]}>
+                              {suggestion.text}
+                            </Text>
+                          </Pressable>
+                        </MotiView>
+                      ))}
+                    </View>
+                  </MotiView>
+                )}
+              </AnimatePresence>
 
-            {/* Floating Action Button (Shows only when typing) */}
-            {goal.length > 0 && (
-              <MotiView
-                from={{ opacity: 0, scale: 0.8, translateY: 20 }}
-                animate={{ opacity: 1, scale: 1, translateY: 0 }}
-                style={styles.fabContainer}
-              >
-                <Pressable
-                  style={[styles.fab, { backgroundColor: colors.ink, shadowColor: colors.accent }]}
-                  onPress={() => {
-                    triggerLight();
-                    Keyboard.dismiss();
-                    router.push({ pathname: "/questionnaire", params: { goal: goal.trim() } });
-                  }}
-                >
-                  <Text style={[styles.fabText, { color: colors.background }]}>{t("home.createBlueprint")}</Text>
-                  <ArrowRight color={colors.background} size={20} />
-                </Pressable>
-              </MotiView>
-            )}
-
-            {/* Inspiration as footnote, not chips */}
-            {!active && goal.length === 0 && (
+              {/* Submit Button */}
               <MotiView
                 from={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1000, duration: 800 }}
-                style={styles.inspirationFooter}
+                animate={{ opacity: goal.trim() ? 1 : 0.4 }}
+                transition={{ type: 'timing', duration: 200 }}
               >
-                <Text style={[styles.inspirationLabel, { color: colors.inkLight }]}>{t("home.observations")}</Text>
-                <View style={styles.inspirationList}>
-                  <Text style={[styles.inspirationItem, { color: colors.inkMedium }]}>{t("home.inspiration1")}</Text>
-                  <Text style={[styles.inspirationItem, { color: colors.inkMedium }]}>{t("home.inspiration2")}</Text>
-                  <Text style={[styles.inspirationItem, { color: colors.inkMedium }]}>{t("home.inspiration3")}</Text>
-                </View>
+                <Pressable
+                  style={[
+                    styles.submitBtn,
+                    { backgroundColor: colors.rust },
+                    !goal.trim() && { backgroundColor: colors.divider }
+                  ]}
+                  onPress={handleSubmit}
+                  disabled={!goal.trim()}
+                >
+                  <Text style={styles.submitBtnText}>{t("home.createBlueprint")}</Text>
+                  <ArrowRight color="#FFFFFF" size={20} />
+                </Pressable>
               </MotiView>
-            )}
-
+            </MotiView>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -239,70 +274,100 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   scroll: {
     flexGrow: 1,
-    paddingHorizontal: 28,
+    paddingHorizontal: 24,
     paddingTop: 20,
-    justifyContent: "space-between",
-    paddingBottom: 40,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    borderBottomWidth: 1,
-    paddingBottom: 16,
-    marginBottom: 60,
+    alignItems: "center",
+    paddingBottom: 20,
+    borderBottomWidth: 0.5,
+    marginBottom: 40,
   },
-  logo: { width: 60, height: 30 },
-  date: { ...Typography.sans.caption, fontSize: 13 },
-  promptContainer: { marginBottom: 40 },
+  logo: {
+    width: 120,
+    height: 40,
+  },
+  date: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  promptContainer: {
+    marginBottom: 40,
+  },
   promptText: {
-    ...Typography.display.h1, // Explicitly use Display/Serif
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: "300",
+    letterSpacing: -1,
     lineHeight: 44,
-    letterSpacing: -0.8,
   },
-  italicText: { fontStyle: "italic", fontWeight: "400" },
-  inputWrapper: { marginBottom: 24 },
+  promptHighlight: {
+    fontSize: 36,
+    fontWeight: "700",
+    letterSpacing: -1,
+    lineHeight: 44,
+  },
+  inputSection: {
+    gap: 20,
+  },
+  inputCard: {
+    borderRadius: 20,
+    padding: 20,
+  },
   input: {
-    fontSize: 20,
-    lineHeight: 32,
-    paddingVertical: 12,
-    minHeight: 60,
-    fontWeight: "400",
+    fontSize: 18,
+    lineHeight: 26,
+    minHeight: 80,
+    textAlignVertical: "top",
   },
-  inputLine: { height: 1.5, marginTop: 4 },
-  // Suggestions
-  suggestionsContainer: { marginBottom: 20 },
-  suggestionsHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 },
-  suggestionsLabel: { fontSize: 12, fontWeight: "500" },
-  suggestionsList: { gap: 8 },
-  suggestionChip: {
+  suggestionsContainer: {
+    gap: 12,
+  },
+  suggestionsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  suggestionsLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  suggestionsPills: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  suggestionPill: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    marginRight: 8,
+    gap: 8,
   },
-  suggestionText: { fontSize: 14, fontWeight: "500" },
-  // FAB
-  fabContainer: { marginTop: 20 },
-  fab: {
+  suggestionIcon: {
+    fontSize: 16,
+  },
+  suggestionText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  submitBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 28,
-    borderRadius: 14,
+    height: 56,
+    borderRadius: 16,
     gap: 10,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 8,
+    marginTop: 10,
   },
-  fabText: { fontSize: 16, fontWeight: "600" },
-  // Inspiration
-  inspirationFooter: { marginTop: "auto", paddingTop: 40 },
-  inspirationLabel: { fontSize: 11, marginBottom: 10, letterSpacing: 1.5, textTransform: "uppercase" },
-  inspirationList: { gap: 4 },
-  inspirationItem: { fontSize: 14, lineHeight: 22 },
+  submitBtnText: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
 });

@@ -1,40 +1,40 @@
-import * as Haptics from 'expo-haptics';
+import * as Haptics from "expo-haptics";
 
 /**
  * Haptic feedback utilities for premium tactile experience
  */
 
-// Light tap - for minor interactions (toggle, select option)
-export const triggerLight = () => {
+// Light tap - for navigation, button press
+export const lightTap = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 };
 
-// Medium tap - for significant actions (complete task, log routine)
-export const triggerMedium = () => {
+// Medium tap - for task completion, checkbox toggle
+export const mediumTap = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 };
 
-// Heavy tap - for major completions (finish phase, reach checkpoint)
-export const triggerHeavy = () => {
+// Heavy tap - for milestone/phase completion
+export const heavyTap = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 };
 
-// Success notification - for celebrations (plan created, goal achieved)
-export const triggerSuccess = () => {
+// Success - for major achievements (week completed, plan finished)
+export const successNotification = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 };
 
-// Warning notification - for alerts
-export const triggerWarning = () => {
+// Warning - for destructive actions confirmation
+export const warningNotification = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
 };
 
-// Error notification - for failures
-export const triggerError = () => {
+// Error - for failed actions
+export const errorNotification = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 };
 
-// Selection changed - for picker/segment controls
-export const triggerSelection = () => {
+// Selection change - for picker/segment changes
+export const selectionChanged = () => {
     Haptics.selectionAsync();
 };
