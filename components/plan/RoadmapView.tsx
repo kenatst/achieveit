@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { ChevronDown, Target, AlertTriangle } from "lucide-react-native";
+import { ChevronDown, Target, AlertTriangle, Circle } from "lucide-react-native";
 import { MotiView } from "moti";
 import { useTheme } from "@/contexts/ThemeContext";
 import Typography from "@/constants/typography";
 import { triggerSelection } from "@/utils/haptics";
 
 export default function RoadmapView({ plan }: { plan: any }) {
-    const { colors, shadows } = useTheme();
+    const { colors } = useTheme();
     const [expandedPhase, setExpandedPhase] = useState<number | null>(0);
 
     const togglePhase = (index: number) => {
@@ -17,47 +17,66 @@ export default function RoadmapView({ plan }: { plan: any }) {
 
     return (
         <View style={styles.container}>
-            {/* Timeline Line */}
+            {/* Continuous Vertical Line */}
             <View style={[styles.timelineLine, { backgroundColor: colors.divider }]} />
 
             {plan.content.phases.map((phase: any, index: number) => {
                 const isExpanded = expandedPhase === index;
+                const isLast = index === plan.content.phases.length - 1;
 
                 return (
                     <View key={index} style={styles.phaseContainer}>
-                        {/* Phase Node */}
+
+                        {/* Interactive Node Area */}
                         <Pressable
-                            style={[
-                                styles.phaseHeader,
-                                { backgroundColor: colors.surface },
-                                shadows.card,
-                                isExpanded && { borderColor: colors.rust, borderWidth: 1 }
-                            ]}
+                            style={styles.nodeRow}
                             onPress={() => togglePhase(index)}
                         >
-                            <View style={styles.headerLeft}>
-                                <Text style={[styles.phaseLabel, { color: colors.rust }]}>PHASE {index + 1}</Text>
-                                <Text style={[styles.phaseTitle, { color: colors.ink }]}>{phase.name}</Text>
+                            {/* The Dot on the Line */}
+                            <View style={[styles.nodeDotContainer, { backgroundColor: colors.background }]}>
+                                <View style={[
+                                    styles.nodeDot,
+                                    {
+                                        borderColor: isExpanded ? colors.rust : colors.inkMuted,
+                                        backgroundColor: isExpanded ? colors.rust : colors.background
+                                    }
+                                ]}>
+                                    <Text style={[styles.nodeNumber, { color: isExpanded ? "#FFF" : colors.inkMuted }]}>
+                                        {index + 1}
+                                    </Text>
+                                </View>
                             </View>
+
+                            {/* Minimalist Header */}
+                            <View style={styles.headerContent}>
+                                <Text style={[
+                                    styles.phaseTitle,
+                                    { color: isExpanded ? colors.rust : colors.ink }
+                                ]}>
+                                    {phase.name}
+                                </Text>
+                                <Text style={[styles.phaseDate, { color: colors.inkMuted }]}>
+                                    Weeks {index * 4 + 1}-{index * 4 + 4}
+                                </Text>
+                            </View>
+
                             <MotiView animate={{ rotate: isExpanded ? "180deg" : "0deg" }}>
-                                <ChevronDown color={colors.inkMuted} size={20} />
+                                <ChevronDown color={colors.inkMuted} size={16} />
                             </MotiView>
                         </Pressable>
 
-                        {/* Expanded Content */}
-                        {isExpanded && (
-                            <MotiView
-                                from={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: "auto" }}
-                                style={styles.phaseContent}
-                            >
+                        {/* Unfolding Content */}
+                        <MotiView
+                            from={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: isExpanded ? 1 : 0, height: isExpanded ? "auto" : 0 }}
+                            transition={{ type: "timing", duration: 300 }}
+                            style={styles.detailsWrapper}
+                        >
+                            <View style={[styles.detailsCard, { borderLeftColor: colors.rust }]}>
                                 {/* Key Actions */}
                                 <View style={styles.sectionBlock}>
-                                    <View style={styles.sectionHeader}>
-                                        <Target size={14} color={colors.inkMuted} />
-                                        <Text style={[styles.sectionTitle, { color: colors.inkMuted }]}>KEY ACTIONS</Text>
-                                    </View>
-                                    <View style={styles.bullets}>
+                                    <Text style={[styles.sectionLabel, { color: colors.inkMuted }]}>KEY ACTIONS</Text>
+                                    <View style={styles.bulletList}>
                                         {phase.keyActions.map((action: string, i: number) => (
                                             <View key={i} style={styles.bulletItem}>
                                                 <View style={[styles.bullet, { backgroundColor: colors.rust }]} />
@@ -67,19 +86,15 @@ export default function RoadmapView({ plan }: { plan: any }) {
                                     </View>
                                 </View>
 
-                                {/* Risks */}
-                                <View style={[styles.riskBlock, { backgroundColor: colors.backgroundDeep }]}>
-                                    <View style={styles.sectionHeader}>
-                                        <AlertTriangle size={14} color={colors.inkMuted} />
-                                        <Text style={[styles.sectionTitle, { color: colors.inkMuted }]}>RISKS</Text>
-                                    </View>
-                                    <Text style={[styles.riskText, { color: colors.inkMedium }]}>
-                                        Watch out for burnout during this intensive phase. Keep routines steady.
+                                {/* Risk Note */}
+                                <View style={[styles.riskNote, { backgroundColor: colors.rustSoft }]}>
+                                    <Text style={[styles.riskText, { color: colors.rust }]}>
+                                        Focus on consistency. Avoid burnout.
                                     </Text>
                                 </View>
+                            </View>
+                        </MotiView>
 
-                            </MotiView>
-                        )}
                     </View>
                 );
             })}
@@ -90,87 +105,99 @@ export default function RoadmapView({ plan }: { plan: any }) {
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 24,
+        paddingTop: 32,
         paddingBottom: 80,
-        paddingTop: 20,
     },
     timelineLine: {
         position: "absolute",
-        left: 48,
-        top: 0,
+        left: 43, // Properly aligned with dot center
+        top: 32,
         bottom: 0,
-        width: 2,
-        opacity: 0.1, // Visible but faint
+        width: 1,
     },
     phaseContainer: {
-        marginBottom: 24, // Increased spacing
+        marginBottom: 32,
     },
-    phaseHeader: {
+    nodeRow: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
-        padding: 24,
-        borderRadius: 20,
+        marginBottom: 8,
     },
-    headerLeft: {
+    nodeDotContainer: {
+        width: 40,
+        alignItems: "center",
+        zIndex: 2, // Above line
+        marginRight: 16,
+    },
+    nodeDot: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        borderWidth: 1.5,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    nodeNumber: {
+        fontSize: 12,
+        fontWeight: "600",
+    },
+    headerContent: {
         flex: 1,
-    },
-    phaseLabel: {
-        ...Typography.sans.label,
-        fontSize: 11,
-        marginBottom: 6,
     },
     phaseTitle: {
         fontSize: 18,
         fontWeight: "600",
-        lineHeight: 26,
+        letterSpacing: -0.5,
+        marginBottom: 2,
     },
-    phaseContent: {
-        backgroundColor: "rgba(0,0,0,0.02)",
-        marginTop: -16,
-        paddingTop: 32,
-        padding: 24,
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 20,
-    },
-    sectionBlock: {
-        marginBottom: 24,
-    },
-    sectionHeader: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-        marginBottom: 16,
-    },
-    sectionTitle: {
-        ...Typography.sans.label,
+    phaseDate: {
+        ...Typography.sans.caption,
         fontSize: 12,
     },
-    bullets: {
-        gap: 12,
+    // Details
+    detailsWrapper: {
+        paddingLeft: 56, // Indent to align with text start
+    },
+    detailsCard: {
+        paddingLeft: 16,
+        borderLeftWidth: 2, // Minimalist accent line instead of card
+        paddingVertical: 8,
+    },
+    sectionBlock: {
+        marginBottom: 16,
+    },
+    sectionLabel: {
+        fontSize: 10,
+        fontWeight: "700",
+        letterSpacing: 1,
+        marginBottom: 8,
+        textTransform: "uppercase",
+    },
+    bulletList: {
+        gap: 8,
     },
     bulletItem: {
         flexDirection: "row",
         alignItems: "flex-start",
-        gap: 12,
+        gap: 10,
     },
     bullet: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        marginTop: 9,
+        width: 5,
+        height: 5,
+        borderRadius: 2.5,
+        marginTop: 8,
     },
     bulletText: {
         flex: 1,
-        fontSize: 16,
-        lineHeight: 24,
-    },
-    riskBlock: {
-        padding: 20,
-        borderRadius: 16,
-    },
-    riskText: {
         fontSize: 15,
-        fontStyle: "italic",
         lineHeight: 22,
     },
+    riskNote: {
+        padding: 12,
+        borderRadius: 8,
+    },
+    riskText: {
+        fontSize: 13,
+        fontWeight: "500",
+    }
 });

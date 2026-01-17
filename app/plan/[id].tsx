@@ -27,7 +27,7 @@ export default function PlanDetailScreen() {
   const { t } = useLanguage();
   const { plans } = usePlans();
 
-  const [activeTab, setActiveTab] = useState<"FOCUS" | "ROADMAP" | "INSIGHT">("FOCUS");
+  const [activeTab, setActiveTab] = useState<"FOCUS" | "ROADMAP" | "INSIGHT">("ROADMAP");
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const plan = plans.find((p) => p.id === id);
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    marginTop: -32, // Overlap the hero slightly
+    marginTop: -50, // More aggressive overlap
     minHeight: SCREEN_HEIGHT, // Ensure it fills screen
   },
   contentArea: {

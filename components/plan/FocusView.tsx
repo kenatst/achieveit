@@ -1,14 +1,15 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { Check, RefreshCw, Calendar } from "lucide-react-native";
+import { Check, RefreshCw, Calendar, ArrowRight } from "lucide-react-native";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { usePlans } from "@/contexts/PlansContext";
-import { triggerSuccess } from "@/utils/haptics";
+import { triggerSuccess, triggerLight } from "@/utils/haptics";
 import Typography from "@/constants/typography";
 
 export default function FocusView({ plan }: { plan: any }) {
     const { colors, shadows } = useTheme();
+    const { t } = useLanguage();
     const { logRoutine } = usePlans();
 
     const todayStr = new Date().toISOString().split("T")[0];
@@ -32,13 +33,12 @@ export default function FocusView({ plan }: { plan: any }) {
     return (
         <View style={styles.container}>
 
-            {/* Today's Agenda Header */}
-            <View style={styles.header}>
-                <Text style={[styles.dateLabel, { color: colors.rust }]}>TODAY</Text>
-                <Text style={[styles.title, { color: colors.ink }]}>Priority Checklist</Text>
-                <Text style={[styles.subtitle, { color: colors.inkMedium }]}>
-                    Complete daily routines to build momentum.
-                </Text>
+            {/* Header Removed to reduce whitespace, title is in Sticky Header now */}
+
+            <View style={styles.topSpacer} />
+
+            <View style={styles.headerCompact}>
+                <Text style={[styles.dateLabel, { color: colors.rust }]}>TODAY'S PRIORITY</Text>
             </View>
 
             {/* Routines List */}
@@ -92,7 +92,7 @@ export default function FocusView({ plan }: { plan: any }) {
                 ))}
             </View>
 
-            {/* Coach Invitation Footer (New Design) */}
+            {/* Coach Invitation Footer */}
             <View style={[styles.coachCard, { backgroundColor: colors.backgroundDeep }]}>
                 <Text style={[styles.coachLabel, { color: colors.inkMuted }]}>NEED GUIDANCE?</Text>
                 <Text style={[styles.coachTitle, { color: colors.ink }]}>
@@ -109,42 +109,31 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         paddingBottom: 60,
     },
-    header: {
-        marginBottom: 40, // Increased spacing
-        marginTop: 10,
+    topSpacer: {
+        height: 12, // Reduced top spacing significantly
+    },
+    headerCompact: {
+        marginBottom: 16,
     },
     dateLabel: {
         ...Typography.sans.label,
         marginBottom: 8,
     },
-    title: {
-        // Use Sans Serif intentionally for main content headers to clean up
-        fontSize: 34,
-        fontWeight: "600",
-        letterSpacing: -1,
-        marginBottom: 8,
-    },
-    subtitle: {
-        ...Typography.sans.body,
-        fontSize: 16,
-        lineHeight: 24,
-        opacity: 0.8,
-    },
     list: {
-        gap: 20, // Increased gap
+        gap: 16,
         marginBottom: 48,
     },
     card: {
         flexDirection: "row",
         alignItems: "center",
-        padding: 24, // Louder padding
-        borderRadius: 20,
+        padding: 20,
+        borderRadius: 16,
     },
     cardLeft: {
         flex: 1,
     },
     routineName: {
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: "500",
         marginBottom: 6,
     },
@@ -154,22 +143,21 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     routineMeta: {
-        fontSize: 14,
+        fontSize: 13,
     },
     checkbox: {
-        width: 32, // Larger touch target
-        height: 32,
-        borderRadius: 10,
+        width: 28,
+        height: 28,
+        borderRadius: 9,
         borderWidth: 2,
         alignItems: "center",
         justifyContent: "center",
     },
-    // Coach Card
     coachCard: {
         padding: 24,
         borderRadius: 20,
         alignItems: "center",
-        marginTop: 20,
+        marginTop: 10,
     },
     coachLabel: {
         ...Typography.sans.label,
@@ -177,8 +165,8 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     coachTitle: {
-        fontSize: 16,
+        fontSize: 15,
         textAlign: "center",
-        lineHeight: 24,
+        lineHeight: 22,
     }
 });

@@ -7,7 +7,7 @@ import { Platform } from "react-native";
 export default {
     // The "Voice" of the app - used for statements, headlines, and moments of impact
     display: {
-        // Massive headlines (e.g. Onboarding statements)
+        // Massive headlines (e.g. Onboarding statements, Home hero)
         hero: {
             fontFamily: Platform.select({ ios: "Georgia", android: "serif" }),
             fontWeight: "700" as const,
@@ -40,8 +40,9 @@ export default {
 
     // The "Brain" of the app - used for UI elements, data, and dense information
     sans: {
-        // [RESTORED] Headline for Home Screen prompt
+        // [RESTORED] Headline for Home Screen prompt - NOW SERIF based on User Request
         headline: {
+            fontFamily: Platform.select({ ios: "Georgia", android: "serif" }), // Changed to Serif
             fontSize: 34,
             fontWeight: "700" as const,
             letterSpacing: -1,

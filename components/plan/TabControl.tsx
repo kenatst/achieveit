@@ -26,7 +26,7 @@ export default function TabControl({ tabs, activeTab, onTabChange }: TabControlP
                         width: layout[activeIndex]?.width || 0,
                     }}
                     transition={{ type: "spring", damping: 20, stiffness: 200 }}
-                    style={[styles.indicator, { backgroundColor: colors.rust }]}
+                    style={[styles.indicator, { backgroundColor: colors.backgroundDeep }]} // Changed to dark/deep for contrast
                 />
             )}
 
@@ -54,8 +54,8 @@ export default function TabControl({ tabs, activeTab, onTabChange }: TabControlP
                         style={[
                             styles.tabText,
                             {
-                                color: activeTab === tab ? "#FFF" : colors.inkMuted,
-                                fontWeight: activeTab === tab ? "600" : "500",
+                                color: activeTab === tab ? colors.ink : colors.inkMuted,
+                                fontWeight: activeTab === tab ? "700" : "500",
                             },
                         ]}
                     >
@@ -70,30 +70,32 @@ export default function TabControl({ tabs, activeTab, onTabChange }: TabControlP
 const styles = StyleSheet.create({
     container: {
         flexDirection: "row",
-        borderRadius: 30, // Rounder
-        padding: 6, // Thicker padding
+        borderRadius: 100,
+        padding: 4,
         borderWidth: 1,
-        marginHorizontal: 24, // Matches new layout
-        marginBottom: 16,
+        marginHorizontal: 32,
+        marginBottom: 20,
         position: "relative",
+        height: 52, // Fixed height for elegance
     },
     tab: {
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        paddingVertical: 12, // Taller touch target
         zIndex: 1,
     },
     tabText: {
         fontSize: 12,
-        letterSpacing: 0.8,
+        letterSpacing: 1,
         textTransform: "uppercase",
     },
     indicator: {
         position: "absolute",
-        top: 6,
-        bottom: 6,
-        borderRadius: 24,
+        top: 4,
+        bottom: 4,
+        borderRadius: 100,
         zIndex: 0,
+        borderWidth: 1,
+        borderColor: "rgba(0,0,0,0.05)",
     },
 });
