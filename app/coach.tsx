@@ -1,343 +1,196 @@
 import React, { useState, useRef, useEffect } from "react";
-import {
-    View,
-    Text,
-    StyleSheet,
-    TextInput,
-    Pressable,
-    ScrollView,
-    KeyboardAvoidingView,
-    Platform,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, KeyboardAvoidingView, Platform, Keyboard } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { ArrowLeft, Send, Sparkles, CheckCircle2, MessageCircle } from "lucide-react-native";
-import { MotiView } from "moti";
+import { useRouter } from "expo-router";
+import { ArrowLeft, Send, Sparkles, User, Zap } from "lucide-react-native";
+import { MotiView, AnimatePresence } from "moti";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { usePlans } from "@/contexts/PlansContext";
-import { sendCoachMessage, ChatMessage } from "@/utils/aiCoach";
+import { lightTap, mediumTap } from "@/utils/haptics";
+import * as Haptics from "expo-haptics";
+
+interface Message {
+    id: string;
+    text: string;
+    sender: "user" | "ai";
+    timestamp: Date;
+}
 
 export default function CoachScreen() {
     const router = useRouter();
-    const { planId } = useLocalSearchParams<{ planId?: string }>();
-    const { colors, shadows, isDark } = useTheme();
-    const { t, locale, languageName } = useLanguage();
-    const { plans } = usePlans();
-    const scrollRef = useRef<ScrollView>(null);
-
-    const plan = planId ? plans.find((p) => p.id === planId) : null;
-
-    const getWelcomeMessage = (): string => {
-        if (plan) {
-            const currentWeekIndex = plan.content.weeklyPlans.findIndex((week, wi) => {
-                const tasksDone = week.tasks.filter((_, ti) =>
-                    plan.progress.weeklyTasks[wi]?.[ti]
-                ).length;
-                return tasksDone < week.tasks.length;
-            });
-            const currentWeek = currentWeekIndex !== -1 ? plan.content.weeklyPlans[currentWeekIndex] : null;
-
-            let msg = t("coach.welcomeWithPlan", { planTitle: plan.content.title });
-            if (currentWeek) {
-                msg += "\n\n" + t("coach.welcomeCurrentWeek", { week: currentWeek.week, focus: currentWeek.focus });
-            } else {
-                msg += "\n\n" + t("coach.welcomeGreatProgress");
-            }
-            return msg;
-        }
-        return t("coach.welcomeNoPlan");
-    };
-
-    const [messages, setMessages] = useState<ChatMessage[]>([
-        {
-            id: "welcome",
-            role: "coach",
-            content: getWelcomeMessage(),
-            timestamp: new Date().toISOString(),
-        },
-    ]);
+    const { colors, shadows } = useTheme();
+    const { t } = useLanguage();
     const [input, setInput] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
+    const [messages, setMessages] = useState<Message[]>([
+        {
+            id: "1",
+            text: "Good morning. I've reviewed your latest progress on the 'Marketing God' blueprint.\n\nYou're trending 12% ahead of schedule on Phase 1, but we need to tighten up the daily content routine. Shall we look at optimization strategies?",
+            sender: "ai",
+            timestamp: new Date()
+        }
+    ]);
+    const scrollViewRef = useRef<ScrollView>(null);
+    const [isTyping, setIsTyping] = useState(false);
 
-    useEffect(() => {
-        scrollRef.current?.scrollToEnd({ animated: true });
-    }, [messages]);
+    const handleSend = () => {
+        if (!input.trim()) return;
 
-    const buildPlanContext = (): string => {
-        if (!plan) return "";
-
-        const currentWeekIndex = plan.content.weeklyPlans.findIndex((week, wi) => {
-            const tasksDone = week.tasks.filter((_, ti) =>
-                plan.progress.weeklyTasks[wi]?.[ti]
-            ).length;
-            return tasksDone < week.tasks.length;
-        });
-        const currentWeek = currentWeekIndex !== -1 ? plan.content.weeklyPlans[currentWeekIndex] : null;
-
-        return `
-PLAN CONTEXT:
-- Goal: ${plan.content.title}
-- Summary: ${plan.content.summary}
-- Progress: ${plan.progress.overallProgress}%
-${currentWeek ? `
-- Current Week: Week ${currentWeek.week} - ${currentWeek.focus}
-- Tasks: ${currentWeek.tasks.join(", ")}
-` : ""}
-- Routines: ${plan.content.routines.map((r) => r.name).join(", ")}
-- Obstacles: ${plan.content.obstacles.map((o) => o.challenge).join(", ")}
-
-IMPORTANT: Respond ONLY in ${languageName}. Base advice on this specific plan.
-`;
-    };
-
-    const handleSend = async () => {
-        if (!input.trim() || isLoading) return;
-
-        const userMessage: ChatMessage = {
-            id: Date.now().toString(),
-            role: "user",
-            content: input.trim(),
-            timestamp: new Date().toISOString(),
-        };
-
-        setMessages((prev) => [...prev, userMessage]);
+        mediumTap();
+        const userMsg: Message = { id: Date.now().toString(), text: input, sender: "user", timestamp: new Date() };
+        setMessages(prev => [...prev, userMsg]);
         setInput("");
-        setIsLoading(true);
+        setIsTyping(true);
 
-        try {
-            const contextualPrompt = plan
-                ? `${buildPlanContext()}\n\nUser: ${input.trim()}`
-                : input.trim();
-            const coachResponse = await sendCoachMessage(contextualPrompt, messages);
-            setMessages((prev) => [...prev, coachResponse]);
-        } catch (error) {
-            setMessages((prev) => [...prev, {
-                id: Date.now().toString(),
-                role: "coach",
-                content: t("coach.errorMessage"),
-                timestamp: new Date().toISOString(),
-            }]);
-        } finally {
-            setIsLoading(false);
-        }
+        // Mock AI Response
+        setTimeout(() => {
+            const aiMsg: Message = {
+                id: (Date.now() + 1).toString(),
+                text: "Precisely. The key here isn't just volume, it's resonance. I recommend we audit your last 3 days of output against the 'Authority' metrics we defined in the diagnosis.\n\nWould you like me to generate a 3-point checklist for tomorrow's routine?",
+                sender: "ai",
+                timestamp: new Date()
+            };
+            setMessages(prev => [...prev, aiMsg]);
+            setIsTyping(false);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }, 2000);
     };
 
-    const getStarters = (): { text: string; icon: string }[] => {
-        if (plan) {
-            return [
-                { text: t("coach.starter1"), icon: "📅" },
-                { text: t("coach.starter2"), icon: "🧩" },
-                { text: t("coach.starter3"), icon: "💪" },
-                { text: t("coach.starter4"), icon: "📊" },
-            ];
-        }
-        return [];
-    };
-
-    const starters = getStarters();
+    const suggestions = [
+        "Optimize my routine",
+        "Review Phase 1 KPIs",
+        "I'm feeling stuck"
+    ];
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
-            <SafeAreaView style={styles.safeArea}>
-                {/* Premium Header */}
-                <MotiView
-                    from={{ opacity: 0, translateY: -10 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    style={[styles.header, { borderBottomColor: colors.divider }]}
-                >
-                    <Pressable style={styles.backBtn} onPress={() => router.back()}>
-                        <ArrowLeft color={colors.ink} size={22} />
+            <SafeAreaView style={styles.safeArea} edges={["top"]}>
+                {/* Header */}
+                <View style={[styles.header, { borderBottomColor: colors.divider }]}>
+                    <Pressable style={styles.backBtn} onPress={() => { lightTap(); router.back(); }}>
+                        <ArrowLeft color={colors.ink} size={24} strokeWidth={2} />
                     </Pressable>
-                    <View style={styles.headerCenter}>
-                        <View style={[styles.coachAvatar, { backgroundColor: colors.rust }]}>
-                            <View style={[styles.avatarRing, { borderColor: colors.rustSoft }]}>
-                                <Sparkles color="#FFFFFF" size={18} />
-                            </View>
-                        </View>
-                        <View>
-                            <Text style={[styles.headerTitle, { color: colors.ink }]}>
-                                {t("coach.title")}
-                            </Text>
-                            <Text style={[styles.headerSubtitle, { color: colors.inkMuted }]} numberOfLines={1}>
-                                {plan ? plan.content.title : t("coach.noPlanSelected")}
-                            </Text>
-                        </View>
+                    <View style={styles.headerContent}>
+                        <Text style={[styles.headerTitle, { color: colors.ink }]}>EXECUTIVE CONCIERGE</Text>
+                        <Text style={[styles.headerSubtitle, { color: colors.primary }]}>AI Strategy Partner</Text>
                     </View>
                     <View style={{ width: 44 }} />
-                </MotiView>
+                </View>
 
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === "ios" ? "padding" : "height"}
-                    style={styles.chatContainer}
-                    keyboardVerticalOffset={90}
+                {/* Chat Area */}
+                <ScrollView
+                    ref={scrollViewRef}
+                    contentContainerStyle={styles.scroll}
+                    showsVerticalScrollIndicator={false}
+                    onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
                 >
-                    <ScrollView
-                        ref={scrollRef}
-                        contentContainerStyle={styles.messagesContainer}
-                        showsVerticalScrollIndicator={false}
-                    >
-                        {messages.map((msg, index) => (
+                    <View style={styles.disclaimer}>
+                        <Sparkles size={14} color={colors.primary} />
+                        <Text style={[styles.disclaimerText, { color: colors.inkFaint }]}>
+                            Confidential & Encrypted Session
+                        </Text>
+                    </View>
+
+                    {messages.map((msg, index) => {
+                        const isUser = msg.sender === "user";
+                        const showAvatar = !isUser && (index === 0 || messages[index - 1].sender === "user");
+
+                        return (
                             <MotiView
                                 key={msg.id}
-                                from={{ opacity: 0, translateY: 10, scale: 0.95 }}
-                                animate={{ opacity: 1, translateY: 0, scale: 1 }}
-                                transition={{ type: "timing", duration: 300, delay: index * 50 }}
+                                from={{ opacity: 0, translateY: 10 }}
+                                animate={{ opacity: 1, translateY: 0 }}
+                                transition={{ type: "timing", duration: 300 }}
                                 style={[
-                                    styles.messageBubble,
-                                    msg.role === "user"
+                                    styles.messageRow,
+                                    isUser ? styles.userRow : styles.aiRow
+                                ]}
+                            >
+                                {!isUser && (
+                                    <View style={[styles.avatar, { opacity: showAvatar ? 1 : 0 }]}>
+                                        <Zap size={14} color={colors.primary} fill={colors.primary} />
+                                    </View>
+                                )}
+
+                                <View style={[
+                                    styles.bubble,
+                                    isUser
                                         ? [styles.userBubble, { backgroundColor: colors.ink }]
-                                        : [styles.coachBubble, {
-                                            backgroundColor: isDark ? colors.surface : "rgba(255,255,255,0.9)",
-                                            borderColor: colors.divider,
-                                            borderWidth: 1,
-                                        }],
-                                    shadows.card,
-                                ]}
-                            >
-                                {msg.role === "coach" && (
-                                    <View style={[styles.coachIcon, { backgroundColor: colors.rustSoft }]}>
-                                        <Sparkles color={colors.rust} size={12} />
-                                    </View>
-                                )}
-                                <Text
-                                    style={[
+                                        : [styles.aiBubble, { backgroundColor: colors.surface, borderColor: colors.dividerStrong }]
+                                ]}>
+                                    <Text style={[
                                         styles.messageText,
-                                        msg.role === "user"
-                                            ? { color: colors.background }
-                                            : { color: colors.ink },
-                                    ]}
-                                >
-                                    {msg.content}
-                                </Text>
-
-                                {msg.actionItems && msg.actionItems.length > 0 && (
-                                    <View style={[styles.actionItems, { borderTopColor: colors.divider }]}>
-                                        {msg.actionItems.map((item, i) => (
-                                            <View key={i} style={styles.actionItem}>
-                                                <CheckCircle2
-                                                    color={colors.sage}
-                                                    size={14}
-                                                    strokeWidth={2}
-                                                />
-                                                <Text style={[styles.actionItemText, { color: colors.ink }]}>
-                                                    {item}
-                                                </Text>
-                                            </View>
-                                        ))}
-                                    </View>
-                                )}
-
-                                {msg.encouragement && (
-                                    <Text
-                                        style={[
-                                            styles.encouragement,
-                                            { color: colors.sage, borderTopColor: colors.divider },
-                                        ]}
-                                    >
-                                        💪 {msg.encouragement}
+                                        isUser ? { color: "#FFF" } : { color: colors.ink }
+                                    ]}>
+                                        {msg.text}
                                     </Text>
-                                )}
-                            </MotiView>
-                        ))}
-
-                        {isLoading && (
-                            <MotiView
-                                from={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                style={[
-                                    styles.messageBubble,
-                                    styles.coachBubble,
-                                    { backgroundColor: isDark ? colors.surface : "rgba(255,255,255,0.9)", borderColor: colors.divider, borderWidth: 1 },
-                                    shadows.card,
-                                ]}
-                            >
-                                <View style={styles.typingIndicator}>
-                                    {[0, 1, 2].map((i) => (
-                                        <MotiView
-                                            key={i}
-                                            from={{ opacity: 0.3, scale: 0.8 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            transition={{
-                                                type: "timing",
-                                                duration: 500,
-                                                delay: i * 150,
-                                                loop: true,
-                                            }}
-                                            style={[styles.typingDot, { backgroundColor: colors.rust }]}
-                                        />
-                                    ))}
                                 </View>
                             </MotiView>
-                        )}
-                    </ScrollView>
+                        );
+                    })}
 
-                    {/* Quick Starters */}
-                    {messages.length <= 1 && starters.length > 0 && (
-                        <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={styles.startersContainer}
+                    {isTyping && (
+                        <MotiView
+                            from={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            style={styles.typingContainer}
                         >
-                            {starters.map((starter) => (
+                            <View style={[styles.typingDot, { backgroundColor: colors.inkFaint }]} />
+                            <View style={[styles.typingDot, { backgroundColor: colors.inkFaint, marginHorizontal: 4 }]} />
+                            <View style={[styles.typingDot, { backgroundColor: colors.inkFaint }]} />
+                        </MotiView>
+                    )}
+
+                    <View style={{ height: 20 }} />
+                </ScrollView>
+
+                {/* Input Area */}
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                    keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
+                    style={[styles.inputContainer, { backgroundColor: colors.background }]}
+                >
+                    {/* Quick Suggestions */}
+                    {messages.length < 3 && (
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.suggestionsRow}>
+                            {suggestions.map((s, i) => (
                                 <Pressable
-                                    key={starter.text}
-                                    style={[
-                                        styles.starterChip,
-                                        { backgroundColor: colors.surface, borderColor: colors.divider },
-                                    ]}
-                                    onPress={() => setInput(starter.text)}
+                                    key={i}
+                                    style={[styles.suggestionChip, { borderColor: colors.dividerStrong }]}
+                                    onPress={() => { setInput(s); lightTap(); }}
                                 >
-                                    <Text style={styles.starterIcon}>{starter.icon}</Text>
-                                    <Text style={[styles.starterText, { color: colors.ink }]}>
-                                        {starter.text}
-                                    </Text>
+                                    <Text style={[styles.suggestionText, { color: colors.inkMedium }]}>{s}</Text>
                                 </Pressable>
                             ))}
+                            <View style={{ width: 24 }} />
                         </ScrollView>
                     )}
 
-                    {/* Premium Input */}
-                    <MotiView
-                        from={{ opacity: 0, translateY: 20 }}
-                        animate={{ opacity: 1, translateY: 0 }}
-                        transition={{ delay: 300 }}
-                        style={[
-                            styles.inputContainer,
-                            { backgroundColor: colors.surface },
-                            shadows.card,
-                        ]}
-                    >
-                        <View style={[styles.inputWrapper, { backgroundColor: colors.background, borderColor: colors.divider }]}>
-                            <MessageCircle color={colors.inkMuted} size={18} style={{ marginRight: 10 }} />
-                            <TextInput
-                                style={[styles.input, { color: colors.ink }]}
-                                placeholder={plan ? t("coach.placeholder") : t("coach.selectPlanFirst")}
-                                placeholderTextColor={colors.inkMuted}
-                                value={input}
-                                onChangeText={setInput}
-                                onSubmitEditing={handleSend}
-                                returnKeyType="send"
-                                multiline
-                                maxLength={500}
-                                editable={!!plan}
-                            />
-                        </View>
+                    <View style={[styles.inputBar, { backgroundColor: colors.surface, borderColor: colors.divider }]}>
+                        <TextInput
+                            style={[styles.input, { color: colors.ink }]}
+                            placeholder="Ask for strategy advice..."
+                            placeholderTextColor={colors.inkFaint}
+                            value={input}
+                            onChangeText={setInput}
+                            multiline
+                        />
                         <Pressable
                             style={[
                                 styles.sendBtn,
-                                { backgroundColor: input.trim() && plan ? colors.rust : colors.divider },
+                                { backgroundColor: input.trim() ? colors.ink : colors.divider }
                             ]}
                             onPress={handleSend}
-                            disabled={!input.trim() || isLoading || !plan}
+                            disabled={!input.trim()}
                         >
-                            <Send
-                                color={input.trim() && plan ? "#FFFFFF" : colors.inkMuted}
-                                size={18}
+                            <ArrowLeft
+                                size={20}
+                                color={input.trim() ? "#FFF" : colors.inkFaint}
+                                style={{ transform: [{ rotate: "90deg" }] }}
                             />
                         </Pressable>
-                    </MotiView>
+                    </View>
                 </KeyboardAvoidingView>
+
             </SafeAreaView>
         </View>
     );
@@ -349,131 +202,148 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 16,
+        justifyContent: "space-between",
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        height: 60,
         borderBottomWidth: 0.5,
     },
     backBtn: {
-        width: 44,
-        height: 44,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    headerCenter: {
-        flex: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 14,
-    },
-    coachAvatar: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    avatarRing: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        borderWidth: 2,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    headerTitle: { fontSize: 18, fontWeight: "700" },
-    headerSubtitle: { fontSize: 13, marginTop: 2, maxWidth: 180 },
-    chatContainer: { flex: 1 },
-    messagesContainer: {
-        paddingHorizontal: 16,
-        paddingVertical: 20,
-        gap: 14,
-    },
-    messageBubble: {
-        maxWidth: "88%",
-        paddingHorizontal: 18,
-        paddingVertical: 14,
+        padding: 8,
+        marginLeft: -8,
         borderRadius: 20,
     },
-    userBubble: { alignSelf: "flex-end", borderBottomRightRadius: 6 },
-    coachBubble: { alignSelf: "flex-start", borderBottomLeftRadius: 6 },
-    coachIcon: {
-        position: "absolute",
-        top: -8,
-        left: -8,
+    headerContent: {
+        alignItems: "center",
+    },
+    headerTitle: {
+        fontSize: 12,
+        fontWeight: "700",
+        letterSpacing: 2,
+    },
+    headerSubtitle: {
+        fontSize: 10,
+        fontWeight: "500",
+        letterSpacing: 0.5,
+        marginTop: 2,
+        textTransform: "uppercase",
+    },
+    scroll: {
+        paddingHorizontal: 20,
+        paddingTop: 24,
+        paddingBottom: 20,
+    },
+    disclaimer: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        marginBottom: 32,
+    },
+    disclaimerText: {
+        fontSize: 11,
+        fontWeight: "500",
+        letterSpacing: 0.5,
+        textTransform: "uppercase",
+    },
+    messageRow: {
+        flexDirection: "row",
+        marginBottom: 16,
+        alignItems: "flex-end",
+    },
+    userRow: {
+        justifyContent: "flex-end",
+    },
+    aiRow: {
+        justifyContent: "flex-start",
+    },
+    avatar: {
         width: 24,
         height: 24,
-        borderRadius: 12,
-        alignItems: "center",
         justifyContent: "center",
-    },
-    messageText: { fontSize: 15, lineHeight: 23 },
-    actionItems: {
-        marginTop: 14,
-        paddingTop: 12,
-        borderTopWidth: 0.5,
-        gap: 10,
-    },
-    actionItem: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
-    actionItemText: { flex: 1, fontSize: 14, lineHeight: 21 },
-    encouragement: {
-        marginTop: 14,
-        paddingTop: 12,
-        borderTopWidth: 0.5,
-        fontSize: 14,
-        fontStyle: "italic",
-    },
-    typingIndicator: {
-        flexDirection: "row",
         alignItems: "center",
-        gap: 6,
-        paddingVertical: 4,
+        marginRight: 8,
+        marginBottom: 2,
+    },
+    bubble: {
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        maxWidth: "80%",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 1,
+    },
+    userBubble: {
+        borderTopLeftRadius: 18,
+        borderTopRightRadius: 4, // Sharp corner for user origin
+        borderBottomLeftRadius: 18,
+        borderBottomRightRadius: 18,
+    },
+    aiBubble: {
+        borderWidth: 1,
+        borderTopLeftRadius: 4, // Sharp corner for AI origin
+        borderTopRightRadius: 18,
+        borderBottomLeftRadius: 18,
+        borderBottomRightRadius: 18,
+    },
+    messageText: {
+        fontSize: 15,
+        lineHeight: 22,
+    },
+    typingContainer: {
+        flexDirection: "row",
+        marginLeft: 48,
+        marginBottom: 16,
     },
     typingDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        opacity: 0.5,
     },
-    startersContainer: { paddingHorizontal: 16, paddingVertical: 12, gap: 10 },
-    starterChip: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 24,
-        borderWidth: 1,
-        marginRight: 10,
-        gap: 8,
-    },
-    starterIcon: { fontSize: 16 },
-    starterText: { fontSize: 14, fontWeight: "500" },
     inputContainer: {
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+        paddingTop: 12,
+    },
+    suggestionsRow: {
+        marginBottom: 12,
+        flexGrow: 0,
+    },
+    suggestionChip: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderWidth: 1,
+        borderRadius: 20,
+        marginRight: 8,
+    },
+    suggestionText: {
+        fontSize: 12,
+        fontWeight: "500",
+    },
+    inputBar: {
         flexDirection: "row",
         alignItems: "flex-end",
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        gap: 12,
-        marginHorizontal: 12,
-        marginBottom: 12,
-        borderRadius: 28,
-    },
-    inputWrapper: {
-        flex: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 20,
         borderWidth: 1,
+        borderRadius: 26,
+        paddingHorizontal: 6,
+        paddingVertical: 6,
+        minHeight: 52,
     },
     input: {
         flex: 1,
+        marginLeft: 14,
+        marginBottom: 10, // Centers text vertically in multiline
         fontSize: 16,
         maxHeight: 100,
+        paddingTop: 0, // Reset default padding
     },
     sendBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         alignItems: "center",
         justifyContent: "center",
     },
