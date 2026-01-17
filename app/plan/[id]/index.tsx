@@ -1,12 +1,12 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { usePlans } from "@/contexts/PlansContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import Typography from "@/constants/typography";
-import FocusView from "@/components/plan/FocusView"; // Reuse the component logic but wrapper is different
+import RoadmapView from "@/components/plan/RoadmapView";
 
-export default function PlanFocusScreen() {
+export default function PlanRoadmapScreen() {
     const { id } = useLocalSearchParams();
     const { plans } = usePlans();
     const { colors } = useTheme();
@@ -21,16 +21,13 @@ export default function PlanFocusScreen() {
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}
         >
-            {/* Hero Section for Focus */}
-            <View style={styles.hero}>
-                <Text style={[styles.heroLabel, { color: colors.rust }]}>CURRENT OBJECTIVE</Text>
-                <Text style={[styles.heroTitle, { color: colors.ink }]}>
-                    {plan.content.weeklyPlans[0]?.focus || "Establish Routine"}
+            <View style={styles.header}>
+                <Text style={[styles.subtitle, { color: colors.inkMedium }]}>
+                    Your continuous path to success.
                 </Text>
             </View>
 
-            {/* The Main Content */}
-            <FocusView plan={plan} />
+            <RoadmapView plan={plan} />
 
         </ScrollView>
     );
@@ -42,19 +39,15 @@ const styles = StyleSheet.create({
     },
     content: {
         paddingTop: 120, // Space for Header
-        paddingBottom: 100, // Space for Tabs
+        paddingBottom: 120, // Space for Floating Nav
     },
-    hero: {
+    header: {
         paddingHorizontal: 24,
-        marginBottom: 32,
+        marginBottom: 8,
     },
-    heroLabel: {
-        ...Typography.sans.label,
-        marginBottom: 12,
-    },
-    heroTitle: {
-        ...Typography.display.hero, // Huge Serif
-        fontSize: 36,
-        lineHeight: 42,
+    subtitle: {
+        ...Typography.sans.body,
+        fontSize: 16,
+        fontStyle: "italic",
     }
 });
