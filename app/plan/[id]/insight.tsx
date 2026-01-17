@@ -4,9 +4,9 @@ import { useLocalSearchParams } from "expo-router";
 import { usePlans } from "@/contexts/PlansContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import Typography from "@/constants/typography";
-import RoadmapView from "@/components/plan/RoadmapView";
+import InsightView from "@/components/plan/InsightView";
 
-export default function PlanRoadmapScreen() {
+export default function PlanInsightScreen() {
     const { id } = useLocalSearchParams();
     const { plans } = usePlans();
     const { colors } = useTheme();
@@ -22,13 +22,10 @@ export default function PlanRoadmapScreen() {
             showsVerticalScrollIndicator={false}
         >
             <View style={styles.header}>
-                <Text style={[styles.title, { color: colors.ink }]}>The Journey</Text>
-                <Text style={[styles.subtitle, { color: colors.inkMedium }]}>
-                    Your continuous path to success.
-                </Text>
+                <Text style={[styles.title, { color: colors.ink }]}>Performance</Text>
             </View>
 
-            <RoadmapView plan={plan} />
+            <InsightView plan={plan} />
 
         </ScrollView>
     );
@@ -44,15 +41,10 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingHorizontal: 24,
-        marginBottom: 8,
+        marginBottom: 24,
     },
     title: {
         ...Typography.display.h1,
         fontSize: 32,
-        marginBottom: 8,
-    },
-    subtitle: {
-        ...Typography.sans.body,
-        fontSize: 16,
     }
 });
