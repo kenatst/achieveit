@@ -1,20 +1,32 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { usePlans } from "@/contexts/PlansContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import Typography from "@/constants/typography";
-import { Flag, Trophy, Clock } from "lucide-react-native";
+import { Flag, Trophy, Clock, Check } from "lucide-react-native";
+import { triggerSuccess } from "@/utils/haptics";
 
 export default function PlanFocusScreen() {
     const { id } = useLocalSearchParams();
-    const { plans } = usePlans();
+    const { plans, toggleWeeklyTask } = usePlans();
     const { colors, shadows } = useTheme();
 
     const plan = plans.find((p) => p.id === id);
     if (!plan) return null;
 
-    const currentWeek = plan.content.weeklyPlans[0]; // Assuming week 1 for now
+    const currentWeekIndex = 0; // Hardcoded to week 0 for now, logic can be dynamic later
+    const currentWeek = plan.content.weeklyPlans[currentWeekIndex];
+
+    // Calculate progress
+    const weeklyTasksProgress = plan.progress.weeklyTasks[currentWeekIndex] || {};
+    const totalTasks = currentWeek.tasks.length;
+    const completedCount = Object.values(weeklyTasksProgress).filter(Boolean).length;
+
+    const handleToggleTask = (taskIndex: number, task: string) => {
+        triggerSuccess();
+        toggleWeeklyTask(plan.id, currentWeekIndex, taskIndex, task);
+    };
 
     return (
         <ScrollView
@@ -26,7 +38,7 @@ export default function PlanFocusScreen() {
             <View style={[styles.mainCard, { backgroundColor: colors.surface }, shadows.card]}>
                 <View style={styles.cardHeader}>
                     <Text style={[styles.cardLabel, { color: colors.rust }]}>CURRENT SPRINT</Text>
-                    <Text style={[styles.weekTitle, { color: colors.ink }]}>Week 1</Text>
+                    <Text style={[styles.weekTitle, { color: colors.ink }]}>Week {currentWeek.week}</Text>
                 </View>
 
                 <Text style={[styles.focusStatement, { color: colors.ink }]}>
@@ -43,11 +55,42 @@ export default function PlanFocusScreen() {
                     </View>
 
                     <View style={styles.taskList}>
-                        {currentWeek.tasks.map((task: string, i: number) => (
-                            <View key={i} style={[styles.taskItem, { borderLeftColor: colors.rust }]}>
-                                <Text style={[styles.taskText, { color: colors.ink }]}>{task}</Text>
-                            </View>
-                        ))}
+                        {currentWeek.tasks.map((task: string, i: number) => {
+                            const isCompleted = weeklyTasksProgress[i] || false;
+                            return (
+                                <Pressable
+                                    key={i}
+                                    style={[
+                                        styles.taskItem,
+                                        {
+                                            backgroundColor: isCompleted ? colors.background : "transparent",
+                                            borderColor: isCompleted ? "transparent" : colors.divider,
+                                            opacity: isCompleted ? 0.6 : 1
+                                        }
+                                    ]}
+                                    onPress={() => handleToggleTask(i, task)}
+                                >
+                                    <View style={[
+                                        styles.checkbox,
+                                        {
+                                            borderColor: isCompleted ? colors.sage : colors.inkMuted,
+                                            backgroundColor: isCompleted ? colors.sage : "transparent"
+                                        }
+                                    ]}>
+                                        {isCompleted && <Check size={12} color="#FFF" strokeWidth={3} />}
+                                    </View>
+                                    <Text style={[
+                                        styles.taskText,
+                                        {
+                                            color: colors.ink,
+                                            textDecorationLine: isCompleted ? "line-through" : "none"
+                                        }
+                                    ]}>
+                                        {task}
+                                    </Text>
+                                </Pressable>
+                            );
+                        })}
                     </View>
                 </View>
 
@@ -71,7 +114,9 @@ export default function PlanFocusScreen() {
                 </View>
                 <View style={[styles.statCard, { backgroundColor: colors.surface }, shadows.card]}>
                     <Flag size={20} color={colors.inkMuted} />
-                    <Text style={[styles.statValue, { color: colors.ink }]}>0/4</Text>
+                    <Text style={[styles.statValue, { color: colors.ink }]}>
+                        {completedCount}/{totalTasks}
+                    </Text>
                     <Text style={[styles.statLabel, { color: colors.inkMuted }]}>Completed</Text>
                 </View>
             </View>
@@ -87,7 +132,7 @@ const styles = StyleSheet.create({
     content: {
         paddingTop: 120,
         paddingHorizontal: 20,
-        paddingBottom: 120,
+        paddingBottom: 120, // Space for Bottom Bar
     },
     mainCard: {
         padding: 24,
@@ -132,16 +177,30 @@ const styles = StyleSheet.create({
         fontSize: 12,
     },
     taskList: {
-        gap: 16,
+        gap: 12,
     },
     taskItem: {
-        paddingLeft: 16,
-        borderLeftWidth: 3,
-        paddingVertical: 2,
+        flexDirection: 'row', // Horizontal alignment for checkbox
+        alignItems: 'flex-start',
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        gap: 12,
+    },
+    checkbox: {
+        width: 24,
+        height: 24,
+        borderRadius: 8,
+        borderWidth: 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 2, // Align with text top
     },
     taskText: {
+        flex: 1,
         fontSize: 16,
         lineHeight: 24,
+        fontWeight: '500',
     },
     milestoneBlock: {
         flexDirection: 'row',
